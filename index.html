@@ -186,6 +186,21 @@ async function loadPeople() {
 }
 loadPeople();
 
+function setImageSource(img, uid){
+  const formats = ["jpg","jpeg","png","JPG"];
+  let index = 0;
+
+  function tryNext(){
+    if(index >= formats.length) return;
+
+    img.src = `images/${uid}.${formats[index++]}`;
+  }
+
+  img.onerror = tryNext;
+
+  tryNext();
+}
+  
 function showScreen(s){
   scanScreen.classList.toggle("active",s==="scan");
   historyScreen.classList.toggle("active",s==="history");
@@ -303,25 +318,38 @@ function handleScan(text, mode){
 
 function loadHistory(){
   const list = document.getElementById("historyList");
-  list.innerHTML="";
+  list.innerHTML = "";
 
   const user = localStorage.getItem(LS_USER);
   const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  scans.filter(s=>s.from===user).forEach(s=>{
-    const row=document.createElement("div");
-    row.className="historyItem";
+  scans
+    .filter(s => s.from === user)
+    .forEach(s => {
 
-    const p = PEOPLE[s.to] || {};
+      const row = document.createElement("div");
+      row.className = "historyItem";
 
-    row.innerHTML = `
-      <div>
+      // ✅ CREATE IMAGE
+      const img = document.createElement("img");
+      img.className = "avatar";
+
+      // ✅ LOAD IMAGE FROM UID
+      setImageSource(img, s.to);
+
+      const p = PEOPLE[s.to] || {};
+
+      const text = document.createElement("div");
+      text.innerHTML = `
         <strong>${p.name || s.to}</strong><br>
         <small>${p.title || ""}</small>
-      </div>
-    `;
-    list.appendChild(row);
-  });
+      `;
+
+      row.appendChild(img);
+      row.appendChild(text);
+
+      list.appendChild(row);
+    });
 }
 
 function resetUser(){
