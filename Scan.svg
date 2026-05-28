@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Scan corners -->
+  <path d="M4 8V4h4"/>
+  <path d="M20 8V4h-4"/>
+  <path d="M4 16v4h4"/>
+  <path d="M20 16v4h-4"/>
+
+  <!-- User -->
+  <circle cx="12" cy="10" r="3"/>
+  <path d="M7 18c1.5-2.5 8.5-2.5 10 0"/>
+</svg>
