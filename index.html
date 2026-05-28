@@ -7,6 +7,30 @@
 
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 
+  <!-- ✅ FIREBASE (NEW) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDrGat6lUuENewTehvJ6yk1_hY2xROEIRw",
+      authDomain: "buildtogethergs2026.firebaseapp.com",
+      projectId: "buildtogethergs2026",
+      storageBucket: "buildtogethergs2026.firebasestorage.app",
+      messagingSenderId: "360094439415",
+      appId: "1:360094439415:web:fef720adb4793b1d2b00f2"
+    };
+
+    // ✅ INIT FIREBASE
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ✅ expose globally so your main script can use it
+    window.db = db;
+    window.addDoc = addDoc;
+    window.collection = collection;
+  </script>
+
   <style>
     body {
       font-family: Arial;
@@ -171,33 +195,27 @@ let PEOPLE = {};
 let scanner;
 let isScanning = false;
 
-// ✅ LOAD PEOPLE CORRECTLY
+// ✅ LOAD PEOPLE
 async function loadPeople() {
   const res = await fetch("people.json");
   const data = await res.json();
 
   data.slice(1).forEach(p=>{
-    PEOPLE[p.D] = {
-      name: p.A,
-      title: p.C
-    };
+    PEOPLE[p.D] = { name:p.A, title:p.C };
   });
-
-  console.log("✅ PEOPLE LOADED", PEOPLE);
 }
 
-// ✅ RESTORE USER AFTER PEOPLE LOAD
+// ✅ RESTORE USER
 function restoreUser(){
   const user = localStorage.getItem(LS_USER);
   if(!user) return;
 
   const person = PEOPLE[user];
-  const name = person ? person.name : user;
-
-  document.getElementById("status").innerText = `Signed in as ${name}`;
+  document.getElementById("status").innerText =
+    `Signed in as ${person ? person.name : user}`;
 }
 
-// ✅ INIT (correct order)
+// ✅ INIT
 (async function init(){
   await loadPeople();
   restoreUser();
@@ -207,12 +225,10 @@ function restoreUser(){
 function setImageSource(img, uid){
   const formats = ["jpg","jpeg","png","JPG"];
   let i = 0;
-
   function tryNext(){
     if(i >= formats.length) return;
     img.src = `images/${uid}.${formats[i++]}`;
   }
-
   img.onerror = tryNext;
   tryNext();
 }
@@ -221,9 +237,6 @@ function setImageSource(img, uid){
 function showScreen(s){
   scanScreen.classList.toggle("active",s==="scan");
   historyScreen.classList.toggle("active",s==="history");
-
-  navScan.classList.toggle("active",s==="scan");
-  navHistory.classList.toggle("active",s==="history");
 
   if(s==="history") loadHistory();
 }
@@ -255,13 +268,11 @@ async function startScanner(mode){
     { fps: 10 },
     (text) => {
       if (!isScanning) return;
-
       isScanning = false;
 
       handleScan(text, mode);
       closeScanner();
-    },
-    () => {}
+    }
   );
 }
 
@@ -277,7 +288,7 @@ async function closeScanner(){
   isScanning = false;
 }
 
-// ✅ SCAN LOGIC
+// ✅ SCAN LOGIC + FIREBASE
 function handleScan(text, mode){
   const id = text.trim();
   const person = PEOPLE[id];
@@ -285,27 +296,37 @@ function handleScan(text, mode){
   if(mode === "signin"){
     localStorage.setItem(LS_USER, id);
 
-    const name = person ? person.name : id;
-    document.getElementById("status").innerText = `Signed in as ${name}`;
+    document.getElementById("status").innerText =
+      `Signed in as ${person ? person.name : id}`;
 
     showToast(person ? `👋 Welcome, ${person.name}` : `👋 Signed in`);
     return;
   }
 
   const user = localStorage.getItem(LS_USER);
-
-  if(!user){
-    showToast("Scan your badge first");
-    return;
-  }
-
+  if(!user){ showToast("Scan your badge first"); return; }
   if(user === id) return;
 
   let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  if(!scans.some(s => s.from === user && s.to === id)){
+  const exists = scans.some(s => s.from === user && s.to === id);
+
+  if(!exists){
     scans.push({ from:user, to:id });
     localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+
+    // ✅ FIREBASE SAVE (safe + optional)
+    if(window.db){
+      addDoc(collection(window.db, "scans"), {
+        from: user,
+        to: id,
+        timestamp: Date.now()
+      }).then(()=>{
+        console.log("✅ Firebase saved");
+      }).catch(err=>{
+        console.warn("Firebase error", err);
+      });
+    }
   }
 
   showToast(person ? `✅ +1 ${person.name}` : `✅ Saved`);
