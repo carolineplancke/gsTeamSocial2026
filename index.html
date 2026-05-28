@@ -4,7 +4,9 @@
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="/gsTeamSocial2026/">
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- ✅ IMPORTANT: add this (was broken before) -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
     body {
@@ -54,7 +56,7 @@
       border-radius:8px;
     }
 
-    /* ✅ NAV BIG + ICONS */
+    /* ✅ NAV */
     #nav {
       position:fixed;
       bottom:0;
@@ -83,36 +85,45 @@
       filter:drop-shadow(0 0 8px #6CFF00);
     }
 
-    /* ✅ SCANNER */
+    /* ✅ SCANNER FIX */
     #scanOverlay {
       position:fixed;
       inset:0;
       background:#0B0F1A;
       display:none;
-      flex-direction:column;
+      justify-content:center;
       align-items:center;
       z-index:9999;
     }
 
-    #reader {
-      width:100%;
-      max-width:420px;
+    #readerWrapper {
+      position:relative;
+      width:320px;
+      height:320px;
     }
 
-    /* ✅ FIXED FRAME (no grey mismatch) */
+    #reader {
+      width:100%;
+      height:100%;
+    }
+
+    #reader video {
+      object-fit: cover;
+    }
+
     #scanFrame {
       position:absolute;
-      width:260px;
-      height:260px;
-      border:4px solid #6CFF00;
       top:50%;
       left:50%;
+      width:250px;
+      height:250px;
+      border:4px solid #6CFF00;
       transform:translate(-50%,-50%);
       box-shadow:0 0 20px rgba(108,255,0,0.6);
       pointer-events:none;
     }
 
-    /* ✅ SUCCESS TOAST */
+    /* ✅ TOAST */
     #toast {
       position:fixed;
       bottom:110px;
@@ -154,10 +165,12 @@
   </div>
 </div>
 
-<!-- SCANNER -->
+<!-- ✅ SCANNER FIXED STRUCTURE -->
 <div id="scanOverlay">
-  <div id="reader"></div>
-  <div id="scanFrame"></div>
+  <div id="readerWrapper">
+    <div id="reader"></div>
+    <div id="scanFrame"></div>
+  </div>
 </div>
 
 <!-- NAV -->
@@ -257,7 +270,7 @@ function setImageSource(img,uid){
   tryNext();
 }
 
-// ✅ SCAN LOGIC (UPDATED ✅)
+// ✅ SCAN LOGIC
 function handleScan(text,mode){
   let id=text;
 
