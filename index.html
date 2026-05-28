@@ -176,14 +176,11 @@ let scanner;
 let isScanning = false;
 
 // ✅ LOAD PEOPLE
-async function loadPeople() {
-  const res = await fetch("people.json");
-  const data = await res.json();
 
-  data.slice(1).forEach(p=>{
-    PEOPLE[p.D] = { name:p.A, title:p.C };
-  });
-}
+(async function init(){
+  restoreUser();  await loadPeople();
+})();
+
 loadPeople();
 
 function setImageSource(img, uid){
@@ -271,17 +268,34 @@ function handleScan(text, mode){
   console.log("ID:", id);
 
   if(mode === "signin"){
-    localStorage.setItem(LS_USER, id);
+  localStorage.setItem(LS_USER, id);
 
-    console.log("✅ USER SAVED:", id);
+  console.log("✅ USER SAVED:", id);
 
-    showToast(
-      person ? `👋 Welcome, ${person.name}` : `👋 Signed in`
-    );
+  // ✅ UPDATE UI IMMEDIATELY
+  const name = person ? person.name : id;
+  document.getElementById("status").innerText = `Signed in as ${name}`;
 
-    return;
-  }
+  showToast(
+    person ? `👋 Welcome, ${person.name}` : `👋 Signed in`
+  );
 
+  return;
+}
+
+  function restoreUser(){
+  const user = localStorage.getItem(LS_USER);
+
+  if(!user) return;
+
+  const person = PEOPLE[user];
+  const name = person ? person.name : user;
+
+  document.getElementById("status").innerText = `Signed in as ${name}`;
+
+  console.log("✅ RESTORED USER:", user);
+}
+  
   const user = localStorage.getItem(LS_USER);
 
   console.log("Current user:", user);
