@@ -112,8 +112,9 @@ let scanner = null;
 let isScanning = false;
 
 const statusEl = document.getElementById("status");
+const scannerDiv = document.getElementById("scanner");
 
-// ✅ Update status display
+// ✅ Update status
 function updateStatus() {
   const user = localStorage.getItem(LS_USER);
 
@@ -128,53 +129,56 @@ function updateStatus() {
 
 updateStatus();
 
-// ✅ Reset everything
+// ✅ Reset
 function resetUser() {
   localStorage.clear();
   location.reload();
 }
 
-// ✅ Step 1: clean "Enable camera" UX
+// ✅ Step 1 — show big clean button
 function prepareScanner(mode) {
   isScanning = false;
 
-  statusEl.innerText = "📷 Tap below to enable camera";
-
-  const scannerDiv = document.getElementById("scanner");
+  statusEl.innerText = "📷 Tap to open camera";
 
   scannerDiv.innerHTML = `
-    <div class="card">
-      <p>Ready to scan</p>
-      <button class="btn primary" onclick="startScanner('${mode}')">
-        Enable camera
-      </button>
-    </div>
+    <button class="btn primary" onclick="startScanner('${mode}')">
+      Open Camera
+    </button>
   `;
 }
 
-// ✅ Step 2: launch scanner
-function startScanner(mode) {
+// ✅ Step 2 — start FULL camera (no ugly UI)
+async function startScanner(mode) {
   if (isScanning) return;
   isScanning = true;
 
-  const scannerDiv = document.getElementById("scanner");
-  scannerDiv.innerHTML = "";
+  scannerDiv.innerHTML = `
+    <div id="reader" style="width: 100%; max-width: 420px;"></div>
+  `;
 
-  scanner = new Html5QrcodeScanner("scanner", {
-    fps: 10,
-    qrbox: { width: 280, height: 280 }
-  });
+  scanner = new Html5Qrcode("reader");
 
-  scanner.render((decodedText) => {
-    handleScan(decodedText, mode);
+  try {
+    await scanner.start(
+      { facingMode: "environment" }, // use back camera
+      { fps: 10, qrbox: 280 },
+      (decodedText) => {
+        handleScan(decodedText, mode);
 
-    scanner.clear().then(() => {
-      isScanning = false;
-    });
-  });
+        scanner.stop().then(() => {
+          isScanning = false;
+        });
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    statusEl.innerText = "⚠️ Camera failed to start";
+    isScanning = false;
+  }
 }
 
-// ✅ Handle scan logic
+// ✅ Scan logic (unchanged)
 function handleScan(text, mode) {
   let id = text;
 
