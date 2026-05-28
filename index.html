@@ -3,583 +3,328 @@
 <head>
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- GitHub Pages project site base -->
   <base href="/gsTeamSocial2026/">
-
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
-    :root{
-      --bg:#0B0F1A;
-      --card:#121826;
-      --muted:#98A2B3;
-      --line:#27324A;
-      --neon:#6CFF00;
-      --btn2:#1E2A44;
-      --text:#FFFFFF;
-    }
-
     body {
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: Arial;
+      background: #0B0F1A;
+      color: white;
       margin: 0;
-      padding: 18px 18px 118px; /* extra space for taller nav */
-      text-align: center;
+      padding: 20px 20px 110px;
     }
 
-    h1 {
-      margin: 8px 0 6px;
-      color: var(--neon);
-      letter-spacing: 0.3px;
-    }
-
-    .subtle {
-      color: var(--muted);
-      font-size: 13px;
-      margin: 0 0 10px;
-    }
+    h1 { color: #6CFF00; }
 
     .screen { display:none; }
-    .screen.active { display:block; }
+    .active { display:block; }
 
     .card {
-      background: var(--card);
-      border-radius: 20px;
-      padding: 18px;
-      margin: 16px auto;
-      max-width: 420px;
-      box-shadow: 0 14px 34px rgba(0,0,0,0.35);
-      text-align: left;
-    }
-
-    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-
-    .status {
-      font-weight: 900;
-      font-size: 14px;
-      margin: 6px 0 12px;
-      line-height: 1.3;
-    }
-
-    .pill {
-      font-size: 12px;
-      color: #0B0F1A;
-      background: var(--neon);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-weight: 900;
-      white-space:nowrap;
+      background:#121826;
+      padding:20px;
+      border-radius:20px;
+      margin:20px auto;
+      max-width:420px;
     }
 
     .btn {
-      width: 100%;
-      padding: 16px;
-      margin: 10px 0;
-      border-radius: 14px;
-      border: none;
-      font-weight: 900;
-      font-size: 16px;
-      cursor: pointer;
+      width:100%;
+      padding:16px;
+      margin:10px 0;
+      border-radius:14px;
+      border:none;
+      font-weight:bold;
     }
-    .primary { background: var(--neon); color: #08110A; }
-    .secondary { background: var(--btn2); color: var(--text); }
-    .ghost { background: transparent; border: 1px solid #3A455F; color: var(--text); }
 
-    /* HISTORY LIST */
-    .list { margin-top: 10px; }
+    .primary { background:#6CFF00; color:black; }
+    .secondary { background:#1E2A44; color:white; }
+    .ghost { background:none; border:1px solid #444; color:white; }
+
     .historyItem {
       display:flex;
-      align-items:center;
-      gap:12px;
-      padding: 12px 4px;
-      border-bottom: 1px solid var(--line);
+      gap:10px;
+      padding:10px;
+      border-bottom:1px solid #2A334C;
     }
-    .historyItem:last-child { border-bottom:none; }
 
     .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 1px solid #2B3650;
-      background: #0E1526;
-      flex: 0 0 44px;
+      width:44px;
+      height:44px;
+      border-radius:8px;
     }
 
-    .who {
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-      flex:1;
-    }
-    .who .name {
-      font-weight: 900;
-      font-size: 14px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .who .meta {
-      color: var(--muted);
-      font-size: 12px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    /* ✅ BIG THUMB NAV (ICON ONLY) */
+    /* ✅ NAV BIG + ICONS */
     #nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 86px;                 /* taller */
-      background: rgba(18,24,38,0.94);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid #222B40;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 50;
-      padding-bottom: env(safe-area-inset-bottom); /* iPhone safe area */
-      box-sizing: border-box;
+      position:fixed;
+      bottom:0;
+      width:100%;
+      height:85px;
+      background:#121826;
+      display:flex;
     }
 
-    .navBtn {
-      width: 50%;
-      height: 100%;
-      border: none;
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .navBtn img {
-      width: 30px;
-      height: 30px;
-      opacity: 0.75;
-      filter: none;
-    }
-
-    .navBtn.active img {
-      opacity: 1;
-      filter: drop-shadow(0 0 10px rgba(108,255,0,0.55));
-    }
-
-    /* active indicator dot */
-    .navBtn.active::after{
-      content:"";
-      position:absolute;
-      bottom: 10px;
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--neon);
-    }
-
-    /* FULLSCREEN SCANNER */
-    #scanOverlay {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      z-index: 9999;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #scanHeader {
-      width: 100%;
-      max-width: 520px;
-      display: flex;
-      justify-content: space-between;
+    #nav button {
+      flex:1;
+      border:none;
+      background:none;
+      display:flex;
+      justify-content:center;
       align-items:center;
-      padding: 16px 16px 10px;
-      box-sizing: border-box;
     }
 
-    #scanHeader .title {
-      font-weight: 900;
-      font-size: 16px;
+    #nav img {
+      width:30px;
+      opacity:0.5;
     }
 
-    #scanHeader button {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-size: 22px;
-      padding: 10px 12px;
-      border-radius: 12px;
+    #nav .active img {
+      opacity:1;
+      filter:drop-shadow(0 0 8px #6CFF00);
+    }
+
+    /* ✅ SCANNER */
+    #scanOverlay {
+      position:fixed;
+      inset:0;
+      background:#0B0F1A;
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      z-index:9999;
     }
 
     #reader {
-      width: 100%;
-      max-width: 520px;
-      padding: 0 14px;
-      box-sizing: border-box;
-    }
-    #reader video {
-      width: 100% !important;
-      border-radius: 20px;
-      overflow: hidden;
+      width:100%;
+      max-width:420px;
     }
 
+    /* ✅ FIXED FRAME (no grey mismatch) */
     #scanFrame {
-      position: absolute;
-      width: 270px;
-      height: 270px;
-      border: 4px solid var(--neon);
-      border-radius: 22px;
-      top: 52%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 18px rgba(108,255,0,0.55);
-      pointer-events: none;
-    }
-
-    #scanHint {
-      position: absolute;
-      bottom: 74px;
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-      padding: 0 20px;
-      max-width: 520px;
-    }
-
-    /* tiny helper text */
-    .toast {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      text-align:left;
-    }
-
-    /* screen-reader only text */
-    .sr {
       position:absolute;
-      width:1px; height:1px;
-      padding:0; margin:-1px;
-      overflow:hidden;
-      clip:rect(0,0,0,0);
-      border:0;
+      width:260px;
+      height:260px;
+      border:4px solid #6CFF00;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      box-shadow:0 0 20px rgba(108,255,0,0.6);
+      pointer-events:none;
     }
+
+    /* ✅ SUCCESS TOAST */
+    #toast {
+      position:fixed;
+      bottom:110px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#121826;
+      padding:12px 18px;
+      border-radius:12px;
+      border:1px solid #2A334C;
+      display:none;
+      font-weight:bold;
+    }
+
   </style>
 </head>
 
 <body>
 
-  <h1>🧱 Build Together 2026</h1>
-  <div class="subtle">Scan badges, collect connections.</div>
+<h1>Build Together</h1>
 
-  <!-- SCAN SCREEN -->
-  <div id="scanScreen" class="screen active">
-    <div class="card">
-      <div class="row">
-        <div class="status" id="status">Not signed in</div>
-        <div class="pill" id="countPill">0</div>
-      </div>
+<div id="toast"></div>
 
-      <button class="btn primary" onclick="startScanner('signin')">Scan your badge</button>
-      <button class="btn secondary" onclick="startScanner('scan')">Scan teammate</button>
-      <button class="btn ghost" onclick="resetUser()">Reset</button>
+<!-- SCAN -->
+<div id="scanScreen" class="screen active">
+  <div class="card">
+    <div id="status">Not signed in</div>
 
-      <div class="toast">Photos can be .jpg/.jpeg/.png (any case). Names/titles load from people.json.</div>
-    </div>
+    <button class="btn primary" onclick="startScanner('signin')">Scan badge</button>
+    <button class="btn secondary" onclick="startScanner('scan')">Scan teammate</button>
+    <button class="btn ghost" onclick="resetUser()">Reset</button>
   </div>
+</div>
 
-  <!-- HISTORY SCREEN -->
-  <div id="historyScreen" class="screen">
-    <div class="card">
-      <div class="row">
-        <div style="font-weight:900;">Your Connections</div>
-        <div class="pill" id="historyPill">0</div>
-      </div>
-      <div class="subtle" style="text-align:left; margin-top:6px;">
-        Your list is saved on this device.
-      </div>
-      <div class="list" id="historyList"></div>
-    </div>
+<!-- HISTORY -->
+<div id="historyScreen" class="screen">
+  <div class="card">
+    <h3>Connections</h3>
+    <div id="historyList"></div>
   </div>
+</div>
 
-  <!-- FULLSCREEN SCANNER -->
-  <div id="scanOverlay">
-    <div id="scanHeader">
-      <span class="title" id="scanTitle">Scan</span>
-      <button onclick="closeScanner()">✕</button>
-    </div>
+<!-- SCANNER -->
+<div id="scanOverlay">
+  <div id="reader"></div>
+  <div id="scanFrame"></div>
+</div>
 
-    <div id="reader"></div>
-    <div id="scanFrame"></div>
-    <div id="scanHint">Align the QR inside the frame.</div>
-  </div>
-
-  <!-- ✅ ICON NAV -->
-  <div id="nav">
-    <button id="navScan" class="navBtn active" onclick="showScreen('scan')" aria-label="Scan">
-      Scan.svg
-      <span class="sr">Scan</span>
-    </button>
-    <button id="navHistory" class="navBtn" onclick="showScreen('history')" aria-label="History">
-      History.svg
-      <span class="sr">History</span>
-    </button>
-  </div>
+<!-- NAV -->
+<div id="nav">
+  <button id="navScan" class="active" onclick="showScreen('scan')">
+    <img src="Scan.svg">
+  </button>
+  <button id="navHistory" onclick="showScreen('history')">
+    <img src="History.svg">
+  </button>
+</div>
 
 <script>
-  // Storage keys
-  const LS_PREFIX = "gsTeamSocial2026_";
-  const LS_USER  = LS_PREFIX + "user";
-  const LS_SCANS = LS_PREFIX + "scans";
+const LS_USER = "user";
+const LS_SCANS = "scans";
 
-  const PEOPLE = {};
-  let PEOPLE_LOADED = false;
+let PEOPLE = {};
+let scanner;
+let isScanning = false;
 
-  let scanner = null;
-  let isScanning = false;
+// ✅ LOAD PEOPLE
+async function loadPeople() {
+  const res = await fetch("people.json");
+  const data = await res.json();
 
-  const statusEl = document.getElementById("status");
-  const countPill = document.getElementById("countPill");
-  const historyList = document.getElementById("historyList");
-  const historyPill = document.getElementById("historyPill");
+  data.slice(1).forEach(p=>{
+    PEOPLE[p.D] = { name:p.A, title:p.C };
+  });
+}
+loadPeople();
 
-  const FALLBACK_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
-      <rect width="100%" height="100%" rx="18" ry="18" fill="#0E1526"/>
-      <circle cx="48" cy="38" r="18" fill="#2B3650"/>
-      <rect x="20" y="62" width="56" height="20" rx="10" fill="#2B3650"/>
-    </svg>
-  `);
+// ✅ NAV
+function showScreen(s){
+  scanScreen.classList.toggle("active",s==="scan");
+  historyScreen.classList.toggle("active",s==="history");
 
-  function getCurrentUser() {
-    return localStorage.getItem(LS_USER);
-  }
-  function getScans() {
-    return JSON.parse(localStorage.getItem(LS_SCANS) || "[]");
-  }
-  function setScans(scans) {
-    localStorage.setItem(LS_SCANS, JSON.stringify(scans));
-  }
-  function getPerson(uid) {
-    return PEOPLE[uid] || null;
-  }
+  navScan.classList.toggle("active",s==="scan");
+  navHistory.classList.toggle("active",s==="history");
 
-  // Mixed extension loader
-  function setImageSource(imgEl, uid) {
-    const formats = ["jpg","jpeg","png","JPG","JPEG","PNG"];
-    let i = 0;
-    function tryNext() {
-      if (i >= formats.length) {
-        imgEl.onerror = null;
-        imgEl.src = FALLBACK_AVATAR;
-        return;
-      }
-      imgEl.src = `images/${uid}.${formats[i++]}`;
-    }
-    imgEl.onerror = tryNext;
-    tryNext();
+  if(s==="history") loadHistory();
+}
+
+// ✅ TOAST
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.style.display = "block";
+
+  setTimeout(()=>{
+    t.style.display = "none";
+  },2000);
+}
+
+// ✅ SCANNER FIXED
+async function startScanner(mode){
+  if(isScanning) return;
+  isScanning=true;
+
+  document.getElementById("scanOverlay").style.display="flex";
+
+  if(scanner){
+    await scanner.stop().catch(()=>{});
   }
 
-  // Load your people.json (A/B/C/D format, first row is header)
-  async function loadPeople() {
-    try {
-      const res = await fetch("people.json", { cache: "no-store" });
-      const data = await res.json();
-      data.slice(1).forEach(row => {
-        const id = (row.D || "").trim();
-        if (!id) return;
-        PEOPLE[id] = {
-          name: (row.A || "").trim(),
-          email: (row.B || "").trim(),
-          title: (row.C || "").trim()
-        };
-      });
-      PEOPLE_LOADED = true;
-      updateTopStatus();
-    } catch (e) {
-      console.error("people.json failed to load", e);
-      PEOPLE_LOADED = false;
-    }
-  }
+  scanner = new Html5Qrcode("reader", {
+    experimentalFeatures:{useBarCodeDetectorIfSupported:true}
+  });
 
-  function updateTopStatus() {
-    const uid = getCurrentUser();
-    if (!uid) {
-      statusEl.textContent = "Not signed in";
-      countPill.textContent = "0";
-      return;
-    }
-    const p = getPerson(uid);
-    statusEl.textContent = (p && p.name) ? `✅ ${p.name} (${uid})` : `✅ ${uid}`;
-    const scans = getScans().filter(s => s.from === uid).length;
-    countPill.textContent = String(scans);
-  }
-
-  function resetUser() {
-    localStorage.removeItem(LS_USER);
-    localStorage.removeItem(LS_SCANS);
-    updateTopStatus();
-    showScreen("scan");
-  }
-
-  function showScreen(which) {
-    document.getElementById("scanScreen").classList.toggle("active", which === "scan");
-    document.getElementById("historyScreen").classList.toggle("active", which === "history");
-    document.getElementById("navScan").classList.toggle("active", which === "scan");
-    document.getElementById("navHistory").classList.toggle("active", which === "history");
-    if (which === "history") loadHistory();
-  }
-
-  // Extract ID from plain UID or URL
-  function extractId(text) {
-    try {
-      if (text.startsWith("http")) {
-        const url = new URL(text);
-        return (url.searchParams.get("id") || url.searchParams.get("signin") || text).trim();
-      }
-    } catch {}
-    return (text || "").trim();
-  }
-
-  // ✅ Robust scanner start:
-  //  - useBarCodeDetectorIfSupported for better mobile performance [1](https://meomaymap.github.io/html5-qrcode/experimental.html)
-  //  - try back camera exact; fallback to non-exact [2](https://stackoverflow.com/questions/68812749/select-back-camera-on-html5-qrcode-min-js)
-  async function startScanner(mode) {
-    if (isScanning) return;
-    isScanning = true;
-
-    document.getElementById("scanTitle").textContent = (mode === "signin") ? "Scan your badge" : "Scan a teammate";
-    document.getElementById("scanOverlay").style.display = "flex";
-
-    // Ensure we don’t leave a previous instance hanging
-    await safeStopScanner();
-
-    scanner = new Html5Qrcode("reader", {
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true } // [1](https://meomaymap.github.io/html5-qrcode/experimental.html)
-    });
-
-    const config = { fps: 10, qrbox: 250 };
-
-    const onSuccess = (decodedText) => {
-      handleScan(decodedText, mode);
+  await scanner.start(
+    { facingMode: "environment" },
+    { fps:10, qrbox:250 },
+    text=>{
+      handleScan(text,mode);
       closeScanner();
-    };
-
-    // keep scanning even if there are decode failures (don’t spam console)
-    const onFailure = (_err) => { /* ignore */ };
-
-    try {
-      // Prefer back camera strictly first [2](https://stackoverflow.com/questions/68812749/select-back-camera-on-html5-qrcode-min-js)
-      await scanner.start({ facingMode: { exact: "environment" } }, config, onSuccess, onFailure);
-    } catch (e1) {
-      try {
-        // Fallback: ask for environment without exact constraint
-        await scanner.start({ facingMode: "environment" }, config, onSuccess, onFailure);
-      } catch (e2) {
-        console.error(e1, e2);
-        isScanning = false;
-        document.getElementById("scanOverlay").style.display = "none";
-        alert("Camera started but scanning failed. Try Safari permissions and retry.");
-      }
     }
+  );
+}
+
+async function closeScanner(){
+  if(scanner){
+    await scanner.stop().catch(()=>{});
+    scanner.clear();
+  }
+  document.getElementById("scanOverlay").style.display="none";
+  isScanning=false;
+}
+
+// ✅ IMAGE HELPER
+function setImageSource(img,uid){
+  const types=["jpg","jpeg","png","JPG"];
+  let i=0;
+  function tryNext(){
+    if(i>=types.length) return;
+    img.src=`images/${uid}.${types[i++]}`;
+  }
+  img.onerror=tryNext;
+  tryNext();
+}
+
+// ✅ SCAN LOGIC (UPDATED ✅)
+function handleScan(text,mode){
+  let id=text;
+
+  const person = PEOPLE[id];
+
+  if(mode==="signin"){
+    localStorage.setItem(LS_USER,id);
+
+    showToast(
+      person ? `👋 Welcome, ${person.name}` : `👋 Welcome`
+    );
+
+    return;
   }
 
-  async function safeStopScanner() {
-    try {
-      if (scanner) {
-        // stop + clear reliably before recreating
-        await scanner.stop();
-        scanner.clear();
-      }
-    } catch {}
-    scanner = null;
+  const user = localStorage.getItem(LS_USER);
+  if(!user || user===id) return;
+
+  let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+
+  if(!scans.find(s=>s.from===user && s.to===id)){
+    scans.push({from:user,to:id});
   }
 
-  async function closeScanner() {
-    await safeStopScanner();
-    document.getElementById("scanOverlay").style.display = "none";
-    isScanning = false;
-    updateTopStatus();
-  }
+  localStorage.setItem(LS_SCANS,JSON.stringify(scans));
 
-  function handleScan(raw, mode) {
-    const id = extractId(raw);
-    if (!id) return;
+  showToast(
+    person
+      ? `✅ +1 Connection: ${person.name}`
+      : `✅ +1 Connection`
+  );
+}
 
-    if (mode === "signin") {
-      localStorage.setItem(LS_USER, id);
-      updateTopStatus();
-      return;
-    }
+// ✅ HISTORY
+function loadHistory(){
+  const list = document.getElementById("historyList");
+  list.innerHTML="";
 
-    const user = getCurrentUser();
-    if (!user) return;
-    if (user === id) return;
+  const user = localStorage.getItem(LS_USER);
+  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-    const scans = getScans();
-    if (!scans.find(s => s.from === user && s.to === id)) {
-      scans.push({ from: user, to: id, time: new Date().toISOString() });
-      setScans(scans);
-    }
-  }
+  scans.filter(s=>s.from===user).forEach(s=>{
+    const row=document.createElement("div");
+    row.className="historyItem";
 
-  function loadHistory() {
-    historyList.innerHTML = "";
+    const img=document.createElement("img");
+    img.className="avatar";
+    setImageSource(img,s.to);
 
-    const user = getCurrentUser();
-    if (!user) {
-      historyList.innerHTML = `<div class="subtle" style="text-align:left;">Sign in first.</div>`;
-      historyPill.textContent = "0";
-      return;
-    }
+    const p = PEOPLE[s.to] || {};
 
-    const scans = getScans().filter(s => s.from === user).slice().reverse();
-    historyPill.textContent = String(scans.length);
+    row.innerHTML = `
+      <div>
+        <strong>${p.name || s.to}</strong><br>
+        <small>${p.title || ""}</small>
+      </div>
+    `;
 
-    if (!scans.length) {
-      historyList.innerHTML = `<div class="subtle" style="text-align:left;">No connections yet. Go scan someone!</div>`;
-      return;
-    }
+    row.prepend(img);
+    list.appendChild(row);
+  });
+}
 
-    scans.forEach(s => {
-      const uid = s.to;
-      const p = getPerson(uid);
-
-      const row = document.createElement("div");
-      row.className = "historyItem";
-
-      const img = document.createElement("img");
-      img.className = "avatar";
-      img.alt = uid;
-      setImageSource(img, uid);
-
-      const who = document.createElement("div");
-      who.className = "who";
-
-      const displayName = (p && p.name) ? p.name : uid;
-      const displayTitle = (p && p.title) ? p.title : "";
-
-      who.innerHTML = `
-        <div class="name">${displayName}</div>
-        <div class="meta">${displayTitle}</div>
-      `;
-
-      row.appendChild(img);
-      row.appendChild(who);
-      historyList.appendChild(row);
-    });
-  }
-
-  // init
-  loadPeople();
-  updateTopStatus();
+function resetUser(){
+  localStorage.clear();
+  location.reload();
+}
 </script>
 
 </body>
