@@ -4,7 +4,7 @@
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Keeps relative links anchored to /gsTeamSocial2026/ -->
+  <!-- Anchor relative paths for this GitHub Pages project site -->
   <base href="/gsTeamSocial2026/">
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -25,7 +25,7 @@
       background: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 18px 18px 92px; /* bottom padding for nav */
+      padding: 18px 18px 92px;
       text-align: center;
     }
 
@@ -55,10 +55,12 @@
     }
 
     .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+
     .status {
-      font-weight: 700;
+      font-weight: 800;
       font-size: 14px;
       margin: 6px 0 12px;
+      line-height: 1.3;
     }
 
     .btn {
@@ -67,13 +69,30 @@
       margin: 10px 0;
       border-radius: 14px;
       border: none;
-      font-weight: 800;
+      font-weight: 900;
       font-size: 16px;
       cursor: pointer;
     }
     .primary { background: var(--neon); color: #08110A; }
     .secondary { background: var(--btn2); color: var(--text); }
     .ghost { background: transparent; border: 1px solid #3A455F; color: var(--text); }
+
+    .pill {
+      font-size: 12px;
+      color: #0B0F1A;
+      background: var(--neon);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 900;
+      white-space:nowrap;
+    }
+
+    .toast {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align:left;
+    }
 
     /* HISTORY LIST */
     .list { margin-top: 10px; }
@@ -95,14 +114,16 @@
       background: #0E1526;
       flex: 0 0 44px;
     }
+
     .who {
       display:flex;
       flex-direction:column;
       gap:2px;
       min-width:0;
+      flex: 1;
     }
     .who .name {
-      font-weight: 800;
+      font-weight: 900;
       font-size: 14px;
       white-space:nowrap;
       overflow:hidden;
@@ -111,16 +132,9 @@
     .who .meta {
       color: var(--muted);
       font-size: 12px;
-    }
-
-    .pill {
-      font-size: 12px;
-      color: #0B0F1A;
-      background: var(--neon);
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-weight: 800;
       white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     /* BOTTOM NAV */
@@ -142,7 +156,7 @@
       border: none;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 900;
       padding: 10px 10px;
       border-radius: 12px;
       min-width: 90px;
@@ -222,13 +236,6 @@
       padding: 0 20px;
       max-width: 520px;
     }
-
-    .toast {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      text-align:left;
-    }
   </style>
 </head>
 
@@ -250,7 +257,7 @@
       <button class="btn ghost" onclick="resetUser()">Reset</button>
 
       <div class="toast">
-        Tip: Photos can be <strong>images/A001.jpg</strong> or <strong>.jpeg</strong> or <strong>.png</strong> — any is fine (filename must match UID).
+        Photos can be <strong>images/A001.jpg</strong> or <strong>.jpeg</strong> or <strong>.png</strong> (or uppercase like <strong>.JPG</strong>).
       </div>
     </div>
   </div>
@@ -274,7 +281,7 @@
     <div class="card">
       <div style="font-weight:900; margin-bottom:6px;">Leaderboard</div>
       <div class="subtle" style="text-align:left;">
-        This version shows <strong>your</strong> total on this device. If you want an all-attendee leaderboard, we’ll need a shared backend.
+        This version shows <strong>your</strong> total on this device. For a global leaderboard, we’d need a shared backend.
       </div>
       <div class="pill" id="yourScorePill" style="margin-top:12px; display:inline-block;">0 connections</div>
     </div>
@@ -300,10 +307,15 @@
   </div>
 
 <script>
-  // Prefix keys to avoid collisions across multiple apps on the same GitHub Pages origin.
+  // Storage keys
   const LS_PREFIX = "gsTeamSocial2026_";
   const LS_USER  = LS_PREFIX + "user";
   const LS_SCANS = LS_PREFIX + "scans";
+
+  // People map loaded from people.json (your format A/B/C/D)
+  // PEOPLE["A050"] = { name, email, title }
+  const PEOPLE = {};
+  let PEOPLE_LOADED = false;
 
   let scanner = null;
   let isScanning = false;
@@ -315,7 +327,7 @@
   const historyPill = document.getElementById("historyPill");
   const yourScorePill = document.getElementById("yourScorePill");
 
-  // Lightweight inline placeholder image (no external hosting needed)
+  // Inline placeholder avatar (no external hosting)
   const FALLBACK_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
       <rect width="100%" height="100%" rx="18" ry="18" fill="#0E1526"/>
@@ -336,9 +348,13 @@
     localStorage.setItem(LS_SCANS, JSON.stringify(scans));
   }
 
-  // Tries images/UID.jpg -> .jpeg -> .png, then falls back to placeholder.
+  function getPerson(uid) {
+    return PEOPLE[uid] || null;
+  }
+
+  // Tries multiple image extensions (and uppercase variants)
   function setImageSource(imgEl, uid) {
-    const formats = ["jpg", "jpeg", "png"];
+    const formats = ["jpg", "jpeg", "png", "JPG", "JPEG", "PNG"];
     let i = 0;
 
     function tryNext() {
@@ -348,19 +364,57 @@
         return;
       }
       const ext = formats[i++];
-      imgEl.src = `images/${uid}.${ext}`; // relative path for project site [1](https://gsccloud.sharepoint.com/sites/Caroline_Dev/_layouts/15/Doc.aspx?sourcedoc=%7B270C161E-A75F-442C-A2D1-37ADC4577156%7D&file=Victualic%20Well-Being%20Finalist%20Presentation%201.pptx&action=edit&mobileredirect=true&DefaultItemOpen=1)
+      imgEl.src = `images/${uid}.${ext}`;
     }
 
     imgEl.onerror = tryNext;
     tryNext();
   }
 
+  // Load your people.json format:
+  // [
+  //  { "A": "Name", "B": "Email", "C": "Job Title", "D": "ID" },
+  //  { "A": "Aaron Jeong", "B": "...", "C": "Engineer IV", "D": "A050" }
+  // ]
+  async function loadPeople() {
+    try {
+      const res = await fetch("people.json", { cache: "no-store" });
+      const data = await res.json();
+
+      // skip header row
+      data.slice(1).forEach(row => {
+        const id = (row.D || "").trim();
+        if (!id) return;
+
+        PEOPLE[id] = {
+          name: (row.A || "").trim(),
+          email: (row.B || "").trim(),
+          title: (row.C || "").trim()
+        };
+      });
+
+      PEOPLE_LOADED = true;
+      updateTopStatus(); // refresh header text to use names
+    } catch (e) {
+      console.error("Failed to load people.json", e);
+      PEOPLE_LOADED = false;
+    }
+  }
+
   function updateTopStatus() {
-    const user = getCurrentUser();
-    statusEl.textContent = user ? `✅ Signed in as ${user}` : "Not signed in";
+    const uid = getCurrentUser();
+
+    if (!uid) {
+      statusEl.textContent = "Not signed in";
+    } else {
+      const p = getPerson(uid);
+      statusEl.textContent = p && p.name
+        ? `✅ Signed in as ${p.name} (${uid})`
+        : `✅ Signed in as ${uid}`;
+    }
 
     const scans = getScans();
-    const myCount = scans.filter(s => s.from === user).length;
+    const myCount = uid ? scans.filter(s => s.from === uid).length : 0;
     countPill.textContent = `${myCount} connections`;
   }
 
@@ -388,12 +442,14 @@
     if (which === "leaderboard") loadLeaderboard();
   }
 
-  // SCANNER (fullscreen, custom UI)
+  // SCANNER (fullscreen)
   async function startScanner(mode) {
     if (isScanning) return;
     isScanning = true;
 
-    document.getElementById("scanTitle").textContent = (mode === "signin") ? "Scan your badge" : "Scan a teammate";
+    document.getElementById("scanTitle").textContent =
+      (mode === "signin") ? "Scan your badge" : "Scan a teammate";
+
     document.getElementById("scanOverlay").style.display = "flex";
 
     scanner = new Html5Qrcode("reader");
@@ -411,7 +467,7 @@
       console.error(err);
       isScanning = false;
       document.getElementById("scanOverlay").style.display = "none";
-      alert("Camera failed to start. Try Safari/Chrome permissions, then retry.");
+      alert("Camera failed to start. Check browser permissions, then retry.");
     }
   }
 
@@ -426,7 +482,6 @@
 
   // SCAN LOGIC
   function extractId(text) {
-    // Accept either plain UID (A001) or a URL with ?id=A001
     try {
       if (text.startsWith("http")) {
         const url = new URL(text);
@@ -440,26 +495,27 @@
     const id = extractId(raw);
     if (!id) return;
 
+    // SIGN IN
     if (mode === "signin") {
       localStorage.setItem(LS_USER, id);
       updateTopStatus();
       return;
     }
 
+    // SCAN teammate
     const user = getCurrentUser();
     if (!user) return;
     if (user === id) return;
 
     let scans = getScans();
 
-    // Dedup per (from,to)
     if (!scans.find(s => s.from === user && s.to === id)) {
       scans.push({ from: user, to: id, time: new Date().toISOString() });
       setScans(scans);
     }
   }
 
-  // HISTORY (photo + UID; supports mixed extensions)
+  // HISTORY (photo + name + title)
   function loadHistory() {
     historyList.innerHTML = "";
 
@@ -478,9 +534,9 @@
       return;
     }
 
-    // show newest first
     scans.slice().reverse().forEach(s => {
       const uid = s.to;
+      const p = getPerson(uid);
 
       const row = document.createElement("div");
       row.className = "historyItem";
@@ -492,14 +548,19 @@
 
       const who = document.createElement("div");
       who.className = "who";
+
+      const displayName = (p && p.name) ? p.name : uid;
+      const displayTitle = (p && p.title) ? p.title : uid;
+      const timeText = new Date(s.time || Date.now()).toLocaleString();
+
       who.innerHTML = `
-        <div class="name">${uid}</div>
-        <div class="meta">${new Date(s.time || Date.now()).toLocaleString()}</div>
+        <div class="name">${displayName}</div>
+        <div class="meta">${(p && p.title) ? p.title : uid}</div>
+        <div class="meta">${timeText}</div>
       `;
 
       row.appendChild(img);
       row.appendChild(who);
-
       historyList.appendChild(row);
     });
   }
@@ -513,6 +574,7 @@
 
   // init
   updateTopStatus();
+  loadPeople();
 </script>
 
 </body>
