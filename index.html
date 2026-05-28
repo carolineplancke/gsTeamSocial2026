@@ -203,24 +203,14 @@ function showToast(msg){
   setTimeout(()=>{ t.style.display="none"; },2000);
 }
 
-// ✅ FIXED camera start + permissions
 async function startScanner(mode){
   if(isScanning) return;
+
   isScanning = true;
-
-  document.getElementById("scanOverlay").style.display="flex";
-
-  try {
-    // ✅ force permission prompt
-    await navigator.mediaDevices.getUserMedia({ video:true });
-  } catch(e) {
-    alert("Camera permission is required");
-    isScanning=false;
-    return;
-  }
+  document.getElementById("scanOverlay").style.display = "flex";
 
   if(scanner){
-    await scanner.stop().catch(()=>{});
+    try { await scanner.stop(); } catch {}
     scanner.clear();
   }
 
@@ -228,56 +218,87 @@ async function startScanner(mode){
 
   await scanner.start(
     { facingMode: "environment" },
-    {
-      fps: 10,
-      aspectRatio: 1.333, // ✅ stabilizes sizing
-      disableFlip: true,
-      qrbox: (vw, vh) => {
-        const min = Math.min(vw, vh);
-        return {
-          width: min * 0.7,
-          height: min * 0.5
-        };
-      }
-    },
-    text=>{
-      handleScan(text,mode);
+    { fps: 10 },
+    (text) => {
+      if (!isScanning) return;
+
+      isScanning = false;
+
+      console.log("SCANNED:", text, "| MODE:", mode);
+
+      handleScan(text, mode);
       closeScanner();
-    }
+    },
+    () => {}
   );
 }
 
 async function closeScanner(){
-  if(scanner){
-    await scanner.stop().catch(()=>{});
-    scanner.clear();
+  try {
+    if(scanner){
+      await scanner.stop();
+      await scanner.clear();
+    }
+  } catch(e) {
+    console.warn("Scanner stop issue:", e);
   }
-  document.getElementById("scanOverlay").style.display="none";
-  isScanning=false;
+
+  document.getElementById("scanOverlay").style.display = "none";
+  isScanning = false;
 }
 
-function handleScan(text,mode){
-  let id=text;
+function handleScan(text, mode){
+  const id = text.trim();
   const person = PEOPLE[id];
 
-  if(mode==="signin"){
-    localStorage.setItem(LS_USER,id);
-    showToast(person ? `👋 Welcome, ${person.name}` : `👋 Welcome`);
+  console.log("---- SCAN EVENT ----");
+  console.log("Mode:", mode);
+  console.log("ID:", id);
+
+  if(mode === "signin"){
+    localStorage.setItem(LS_USER, id);
+
+    console.log("✅ USER SAVED:", id);
+
+    showToast(
+      person ? `👋 Welcome, ${person.name}` : `👋 Signed in`
+    );
+
     return;
   }
 
   const user = localStorage.getItem(LS_USER);
-  if(!user || user===id) return;
+
+  console.log("Current user:", user);
+
+  if(!user){
+    console.warn("❌ No user signed in");
+    showToast("Scan your badge first");
+    return;
+  }
+
+  if(user === id){
+    console.warn("❌ Self scan");
+    return;
+  }
 
   let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  if(!scans.find(s=>s.from===user && s.to===id)){
-    scans.push({from:user,to:id});
+  const exists = scans.some(s => s.from === user && s.to === id);
+
+  if(!exists){
+    scans.push({ from: user, to: id });
+
+    localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+
+    console.log("✅ SAVED:", scans);
+  } else {
+    console.log("⚠️ Already scanned");
   }
 
-  localStorage.setItem(LS_SCANS,JSON.stringify(scans));
-
-  showToast(person ? `✅ +1 Connection: ${person.name}` : `✅ +1 Connection`);
+  showToast(
+    person ? `✅ +1 ${person.name}` : `✅ Saved`
+  );
 }
 
 function loadHistory(){
