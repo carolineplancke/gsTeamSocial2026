@@ -28,7 +28,10 @@ const LS_SCANS = "qrgame_scans";
 const statusEl = document.getElementById("status");
 const scannerDiv = document.getElementById("scanner");
 
-// Show current user
+let scanner = null;
+let isScanning = false;
+
+// Update status
 function updateStatus() {
   const user = localStorage.getItem(LS_USER);
   if (user) {
@@ -40,39 +43,47 @@ function updateStatus() {
 
 updateStatus();
 
-// Reset user (for testing)
+// Reset
 function resetUser() {
   localStorage.removeItem(LS_USER);
+  localStorage.removeItem(LS_SCANS);
   location.reload();
 }
 
-// Start scanner function
+// Start scanner
 function startScanner(mode) {
-  scannerDiv.innerHTML = ""; // reset
-  const qr = new Html5QrcodeScanner("scanner", { fps: 10, qrbox: 250 });
+  if (isScanning) return;
 
-  qr.render((decodedText) => {
+  isScanning = true;
+  scannerDiv.innerHTML = "";
+
+  // create scanner
+  scanner = new Html5QrcodeScanner("scanner", { fps: 10, qrbox: 250 });
+
+  scanner.render((decodedText) => {
     handleScan(decodedText, mode);
 
-    // stop + hide scanner after scan
-    scannerDiv.innerHTML = "";
+    // stop AFTER success
+    scanner.clear().then(() => {
+      isScanning = false;
+    });
   });
 }
 
-// Handle scanning logic
+// Handle scan
 function handleScan(text, mode) {
   let id = text;
 
   try {
     if (text.startsWith("http")) {
       const url = new URL(text);
-      id = url.searchParams.get("id") || url.searchParams.get("signin") || text;
+      id = url.searchParams.get("id") || text;
     }
   } catch {}
 
   if (!id) return;
 
-  // SIGN IN FLOW
+  // SIGN IN
   if (mode === "signin") {
     localStorage.setItem(LS_USER, id);
     updateStatus();
@@ -80,26 +91,25 @@ function handleScan(text, mode) {
     return;
   }
 
-  // SCAN FLOW
+  // SCAN MODE
   const currentUser = localStorage.getItem(LS_USER);
 
   if (!currentUser) {
-    statusEl.innerText = "⚠️ Please sign in first!";
+    statusEl.innerText = "⚠️ Sign in first";
     return;
   }
 
   if (currentUser === id) {
-    statusEl.innerText = "😄 You scanned yourself";
+    statusEl.innerText = "😄 That’s you!";
     return;
   }
 
-  // get previous scans
   let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  // prevent duplicates
   const exists = scans.find(s => s.from === currentUser && s.to === id);
+
   if (exists) {
-    statusEl.innerText = "⚠️ Already scanned this person";
+    statusEl.innerText = "⚠️ Already scanned";
     return;
   }
 
@@ -122,7 +132,6 @@ document.getElementById("signinBtn").onclick = () => {
 document.getElementById("scanBtn").onclick = () => {
   startScanner("scan");
 };
-
 </script>
 
 </body>
