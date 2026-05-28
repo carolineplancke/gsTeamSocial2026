@@ -1,1 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 
+<body style="font-family: Arial; text-align:center; padding:20px;">
+
+<h2>QR Connection Game 🎉</h2>
+
+<div id="setup">
+  <p>Who are you?</p>
+  <button onclick="setUser('Caroline')">Caroline</button><br><br>
+  <button onclick="setUser('Matt')">Matt</button><br><br>
+  <button onclick="setUser('Kelly')">Kelly</button><br><br>
+</div>
+
+<div id="app" style="display:none;">
+  <p id="welcome"></p>
+  <p>Ready to scan people ✅</p>
+  <button onclick="logout()">Change user</button>
+</div>
+
+<script>
+const user = localStorage.getItem("user");
+
+if (user) {
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("welcome").innerText = "You are: " + user;
+}
+
+function setUser(name) {
+  localStorage.setItem("user", name);
+  location.reload();
+}
+
+function logout() {
+  localStorage.removeItem("user");
+  location.reload();
+}
+</script>
+
+</body>
+</html>
