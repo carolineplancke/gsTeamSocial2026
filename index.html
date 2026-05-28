@@ -4,96 +4,160 @@
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Optional but helpful for project sites: keeps all relative links anchored to /gsTeamSocial2026/ -->
+  <base href="/gsTeamSocial2026/">
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+    :root{
+      --bg:#0B0F1A;
+      --card:#121826;
+      --muted:#98A2B3;
+      --line:#27324A;
+      --neon:#6CFF00;
+      --btn2:#1E2A44;
+      --text:#FFFFFF;
+    }
+
     body {
-      font-family: Arial;
-      background: #0B0F1A;
-      color: white;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       margin: 0;
-      padding: 20px;
+      padding: 18px 18px 92px; /* bottom padding for nav */
       text-align: center;
     }
 
     h1 {
-      color: #6CFF00;
+      margin: 8px 0 6px;
+      color: var(--neon);
+      letter-spacing: 0.3px;
     }
 
-    .screen {
-      display: none;
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 10px;
     }
 
-    .active {
-      display: block;
-    }
+    .screen { display:none; }
+    .screen.active { display:block; }
 
     .card {
-      background: #121826;
+      background: var(--card);
       border-radius: 20px;
-      padding: 20px;
-      margin: 20px auto;
+      padding: 18px;
+      margin: 16px auto;
       max-width: 420px;
+      box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+      text-align: left;
+    }
+
+    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .status {
+      font-weight: 700;
+      font-size: 14px;
+      margin: 6px 0 12px;
     }
 
     .btn {
       width: 100%;
-      padding: 18px;
+      padding: 16px;
       margin: 10px 0;
       border-radius: 14px;
       border: none;
-      font-weight: bold;
+      font-weight: 800;
+      font-size: 16px;
       cursor: pointer;
     }
+    .primary { background: var(--neon); color: #08110A; }
+    .secondary { background: var(--btn2); color: var(--text); }
+    .ghost { background: transparent; border: 1px solid #3A455F; color: var(--text); }
 
-    .primary {
-      background: #6CFF00;
-      color: black;
+    /* HISTORY LIST */
+    .list { margin-top: 10px; }
+    .historyItem {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 12px 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .historyItem:last-child { border-bottom:none; }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid #2B3650;
+      background: #0E1526;
+      flex: 0 0 44px;
+    }
+    .who {
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .who .name {
+      font-weight: 800;
+      font-size: 14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .who .meta {
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    .secondary {
-      background: #1E2A44;
-      color: white;
+    .pill {
+      font-size: 12px;
+      color: #0B0F1A;
+      background: var(--neon);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      white-space:nowrap;
     }
 
-    .ghost {
-      background: none;
-      border: 1px solid #444;
-      color: white;
-    }
-
-    #status {
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-
-    /* NAV BAR */
+    /* BOTTOM NAV */
     #nav {
       position: fixed;
       bottom: 0;
       left: 0;
       width: 100%;
-      background: #121826;
+      background: rgba(18,24,38,0.92);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid #222B40;
       display: flex;
       justify-content: space-around;
-      padding: 10px 0;
+      padding: 10px 8px;
+      z-index: 50;
     }
-
     #nav button {
-      background: none;
-      color: white;
+      background: transparent;
       border: none;
-      font-size: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 10px 10px;
+      border-radius: 12px;
+      min-width: 90px;
+    }
+    #nav button.active {
+      color: var(--text);
+      outline: 1px solid #2B3650;
+      background: rgba(108,255,0,0.12);
     }
 
-    /* SCANNER OVERLAY */
+    /* FULLSCREEN SCANNER */
     #scanOverlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #0B0F1A;
+      inset: 0;
+      background: var(--bg);
       z-index: 9999;
       display: none;
       flex-direction: column;
@@ -104,192 +168,339 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
-      padding: 20px;
+      align-items:center;
+      padding: 16px 16px 10px;
+      box-sizing: border-box;
+      max-width: 520px;
+    }
+
+    #scanHeader .title {
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    #scanHeader button {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      padding: 10px 12px;
+      border-radius: 12px;
     }
 
     #reader {
       width: 100%;
-      max-width: 420px;
+      max-width: 520px;
+      padding: 0 14px;
+      box-sizing: border-box;
+    }
+    #reader video {
+      width: 100% !important;
+      border-radius: 20px;
+      overflow: hidden;
     }
 
     #scanFrame {
       position: absolute;
-      width: 260px;
-      height: 260px;
-      border: 4px solid #6CFF00;
-      border-radius: 20px;
-      top: 50%;
+      width: 270px;
+      height: 270px;
+      border: 4px solid var(--neon);
+      border-radius: 22px;
+      top: 52%;
       left: 50%;
       transform: translate(-50%, -50%);
+      box-shadow: 0 0 18px rgba(108,255,0,0.55);
+      pointer-events: none;
     }
 
     #scanHint {
       position: absolute;
-      bottom: 80px;
-      font-size: 14px;
-      opacity: 0.7;
+      bottom: 74px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 0 20px;
+      max-width: 520px;
     }
 
-    /* HISTORY LIST */
-    .historyItem {
-      text-align: left;
-      padding: 10px;
-      border-bottom: 1px solid #2A334C;
+    .toast {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align:left;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🧱 Build Together 2026</h1>
+  <h1>🧱 Build Together 2026</h1>
+  <div class="subtle">Scan badges, collect connections, win bragging rights.</div>
 
-<!-- ✅ SCAN SCREEN -->
-<div id="scanScreen" class="screen active">
-  <div class="card">
-    <div id="status">Not signed in</div>
+  <!-- SCAN SCREEN -->
+  <div id="scanScreen" class="screen active">
+    <div class="card">
+      <div class="row">
+        <div class="status" id="status">Not signed in</div>
+        <div class="pill" id="countPill">0 connections</div>
+      </div>
 
-    <button class="btn primary" onclick="startScanner('signin')">
-      Scan your badge to sign in
-    </button>
+      <button class="btn primary" onclick="startScanner('signin')">Scan your badge to sign in</button>
+      <button class="btn secondary" onclick="startScanner('scan')">Scan a teammate</button>
+      <button class="btn ghost" onclick="resetUser()">Reset</button>
 
-    <button class="btn secondary" onclick="startScanner('scan')">
-      Scan a teammate
-    </button>
-
-    <button class="btn ghost" onclick="resetUser()">Reset</button>
-  </div>
-</div>
-
-<!-- ✅ HISTORY SCREEN -->
-<div id="historyScreen" class="screen">
-  <div class="card">
-    <h3>Your Connections</h3>
-    <div id="historyList"></div>
-  </div>
-</div>
-
-<!-- ✅ LEADERBOARD SCREEN (basic for now) -->
-<div id="leaderboardScreen" class="screen">
-  <div class="card">
-    <h3>Leaderboard</h3>
-    <p id="yourScore"></p>
-  </div>
-</div>
-
-<!-- ✅ SCANNER -->
-<div id="scanOverlay">
-  <div id="scanHeader">
-    <span>Scan QR</span>
-    <button onclick="closeScanner()">✕</button>
+      <div class="toast">
+        Tip: Photos live in <strong>images/A001.jpg</strong>, <strong>images/A002.jpg</strong>, etc.
+      </div>
+    </div>
   </div>
 
-  <div id="reader"></div>
-  <div id="scanFrame"></div>
-  <div id="scanHint">Align QR code inside the frame</div>
-</div>
+  <!-- HISTORY SCREEN -->
+  <div id="historyScreen" class="screen">
+    <div class="card">
+      <div class="row">
+        <div style="font-weight:900;">Your Connections</div>
+        <div class="pill" id="historyPill">0</div>
+      </div>
+      <div class="subtle" style="text-align:left; margin-top:6px;">
+        Tap Scan to add more.
+      </div>
+      <div class="list" id="historyList"></div>
+    </div>
+  </div>
 
-<!-- ✅ NAV BAR -->
-<div id="nav">
-  <button onclick="showScreen('scan')">📷 Scan</button>
-  <button onclick="showScreen('history')">👥 History</button>
-  <button onclick="showScreen('leaderboard')">🏆 Leaderboard</button>
-</div>
+  <!-- LEADERBOARD SCREEN (local/basic for now) -->
+  <div id="leaderboardScreen" class="screen">
+    <div class="card">
+      <div style="font-weight:900; margin-bottom:6px;">Leaderboard</div>
+      <div class="subtle" style="text-align:left;">
+        This version shows <strong>your</strong> total on this device. If you want an all-attendee leaderboard, we’ll need a shared backend.
+      </div>
+      <div class="pill" id="yourScorePill" style="margin-top:12px; display:inline-block;">0 connections</div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN SCANNER -->
+  <div id="scanOverlay">
+    <div id="scanHeader">
+      <span class="title" id="scanTitle">Scan QR</span>
+      <button onclick="closeScanner()">✕</button>
+    </div>
+
+    <div id="reader"></div>
+    <div id="scanFrame"></div>
+    <div id="scanHint">Align the QR inside the frame.</div>
+  </div>
+
+  <!-- NAV -->
+  <div id="nav">
+    <button id="navScan" class="active" onclick="showScreen('scan')">📷 Scan</button>
+    <button id="navHistory" onclick="showScreen('history')">👥 History</button>
+    <button id="navLeaderboard" onclick="showScreen('leaderboard')">🏆 Leaderboard</button>
+  </div>
 
 <script>
-const LS_USER = "qrgame_user";
-const LS_SCANS = "qrgame_scans";
+  // Prefix keys to avoid collisions across multiple apps on the same GitHub Pages origin.
+  const LS_PREFIX = "gsTeamSocial2026_";
+  const LS_USER  = LS_PREFIX + "user";
+  const LS_SCANS = LS_PREFIX + "scans";
 
-let scanner = null;
-let isScanning = false;
+  let scanner = null;
+  let isScanning = false;
 
-// NAVIGATION
-function showScreen(screen) {
-  document.getElementById("scanScreen").classList.remove("active");
-  document.getElementById("historyScreen").classList.remove("active");
-  document.getElementById("leaderboardScreen").classList.remove("active");
+  const statusEl = document.getElementById("status");
+  const countPill = document.getElementById("countPill");
 
-  document.getElementById(screen + "Screen").classList.add("active");
+  const historyList = document.getElementById("historyList");
+  const historyPill = document.getElementById("historyPill");
+  const yourScorePill = document.getElementById("yourScorePill");
 
-  if (screen === "history") loadHistory();
-  if (screen === "leaderboard") loadLeaderboard();
-}
+  // Lightweight inline placeholder image (no external hosting needed)
+  const FALLBACK_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
+      <rect width="100%" height="100%" rx="18" ry="18" fill="#0E1526"/>
+      <circle cx="48" cy="38" r="18" fill="#2B3650"/>
+      <rect x="20" y="62" width="56" height="20" rx="10" fill="#2B3650"/>
+    </svg>
+  `);
 
-// RESET
-function resetUser() {
-  localStorage.clear();
-  location.reload();
-}
+  function getCurrentUser() {
+    return localStorage.getItem(LS_USER);
+  }
 
-// SCANNER
-async function startScanner(mode) {
-  if (isScanning) return;
-  isScanning = true;
+  function getScans() {
+    return JSON.parse(localStorage.getItem(LS_SCANS) || "[]");
+  }
 
-  document.getElementById("scanOverlay").style.display = "flex";
+  function setScans(scans) {
+    localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+  }
 
-  scanner = new Html5Qrcode("reader");
+  // Photos in your repo: /gsTeamSocial2026/images/A001.jpg
+  // Use RELATIVE paths so they resolve under the project subpath. [2](https://www.codestudy.net/blog/github-pages-and-relative-paths/)
+  function getPhotoUrl(uid) {
+    return `images/${uid}.jpg`;
+  }
 
-  await scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      handleScan(decodedText, mode);
-      closeScanner();
+  function updateTopStatus() {
+    const user = getCurrentUser();
+    statusEl.textContent = user ? `✅ Signed in as ${user}` : "Not signed in";
+
+    const scans = getScans();
+    const myCount = scans.filter(s => s.from === user).length;
+    countPill.textContent = `${myCount} connections`;
+  }
+
+  function resetUser() {
+    localStorage.removeItem(LS_USER);
+    localStorage.removeItem(LS_SCANS);
+    updateTopStatus();
+    showScreen('scan');
+  }
+
+  // NAV
+  function setNavActive(which) {
+    document.getElementById("navScan").classList.toggle("active", which === "scan");
+    document.getElementById("navHistory").classList.toggle("active", which === "history");
+    document.getElementById("navLeaderboard").classList.toggle("active", which === "leaderboard");
+  }
+
+  function showScreen(which) {
+    document.getElementById("scanScreen").classList.toggle("active", which === "scan");
+    document.getElementById("historyScreen").classList.toggle("active", which === "history");
+    document.getElementById("leaderboardScreen").classList.toggle("active", which === "leaderboard");
+    setNavActive(which);
+
+    if (which === "history") loadHistory();
+    if (which === "leaderboard") loadLeaderboard();
+  }
+
+  // SCANNER (fullscreen, custom UI)
+  async function startScanner(mode) {
+    if (isScanning) return;
+    isScanning = true;
+
+    document.getElementById("scanTitle").textContent = (mode === "signin") ? "Scan your badge" : "Scan a teammate";
+    document.getElementById("scanOverlay").style.display = "flex";
+
+    scanner = new Html5Qrcode("reader");
+
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          handleScan(decodedText, mode);
+          closeScanner();
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      isScanning = false;
+      document.getElementById("scanOverlay").style.display = "none";
+      alert("Camera failed to start. Try Safari/Chrome permissions, then retry.");
     }
-  );
-}
-
-function closeScanner() {
-  if (scanner) {
-    scanner.stop().then(() => scanner.clear());
   }
 
-  document.getElementById("scanOverlay").style.display = "none";
-  isScanning = false;
-}
-
-// SCAN LOGIC
-function handleScan(text, mode) {
-  const id = text;
-
-  if (mode === "signin") {
-    localStorage.setItem(LS_USER, id);
-    return;
+  function closeScanner() {
+    if (scanner) {
+      scanner.stop().then(() => scanner.clear()).catch(() => {});
+    }
+    document.getElementById("scanOverlay").style.display = "none";
+    isScanning = false;
+    updateTopStatus();
   }
 
-  const user = localStorage.getItem(LS_USER);
-  if (!user || user === id) return;
-
-  let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
-
-  if (!scans.find(s => s.from === user && s.to === id)) {
-    scans.push({ from: user, to: id });
+  // SCAN LOGIC
+  function extractId(text) {
+    // Accept either plain UID (A001) or a URL with ?id=A001
+    try {
+      if (text.startsWith("http")) {
+        const url = new URL(text);
+        return url.searchParams.get("id") || url.searchParams.get("signin") || text;
+      }
+    } catch {}
+    return text.trim();
   }
 
-  localStorage.setItem(LS_SCANS, JSON.stringify(scans));
-}
+  function handleScan(raw, mode) {
+    const id = extractId(raw);
+    if (!id) return;
 
-// ✅ HISTORY
-function loadHistory() {
-  const list = document.getElementById("historyList");
-  list.innerHTML = "";
+    if (mode === "signin") {
+      localStorage.setItem(LS_USER, id);
+      updateTopStatus();
+      return;
+    }
 
-  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+    const user = getCurrentUser();
+    if (!user) return;
+    if (user === id) return;
 
-  scans.forEach(s => {
-    const div = document.createElement("div");
-    div.className = "historyItem";
-    div.innerText = `✅ ${s.to}`;
-    list.appendChild(div);
-  });
-}
+    let scans = getScans();
 
-// ✅ LEADERBOARD
-function loadLeaderboard() {
-  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
-  document.getElementById("yourScore").innerText =
-    "You have " + scans.length + " connections";
-}
+    // Dedup per (from,to)
+    if (!scans.find(s => s.from === user && s.to === id)) {
+      scans.push({ from: user, to: id, time: new Date().toISOString() });
+      setScans(scans);
+    }
+  }
+
+  // HISTORY (photo + UID)
+  function loadHistory() {
+    historyList.innerHTML = "";
+
+    const user = getCurrentUser();
+    const scans = getScans().filter(s => s.from === user);
+
+    historyPill.textContent = scans.length.toString();
+
+    if (!user) {
+      historyList.innerHTML = `<div class="subtle" style="text-align:left;">Sign in first to see your connections.</div>`;
+      return;
+    }
+
+    if (!scans.length) {
+      historyList.innerHTML = `<div class="subtle" style="text-align:left;">No connections yet. Go scan someone!</div>`;
+      return;
+    }
+
+    // show newest first
+    scans.slice().reverse().forEach(s => {
+      const uid = s.to;
+
+      const row = document.createElement("div");
+      row.className = "historyItem";
+
+      const img = document.createElement("img");
+      img.className = "avatar";
+      img.src = getPhotoUrl(uid);
+      img.alt = uid;
+      img.onerror = () => { img.src = FALLBACK_AVATAR; };
+
+      const who = document.createElement("div");
+      who.className = "who";
+      who.innerHTML = `
+        <div class="name">${uid}</div>
+        <div class="meta">${new Date(s.time || Date.now()).toLocaleString()}</div>
+      `;
+
+      row.appendChild(img);
+      row.appendChild(who);
+
+      historyList.appendChild(row);
+    });
+  }
+
+  // LEADERBOARD (local/basic)
+  function loadLeaderboard() {
+    const user = getCurrentUser();
+    const scans = getScans().filter(s => s.from === user);
+    yourScorePill.textContent = `${scans.length} connections`;
+  }
+
+  // init
+  updateTopStatus();
 </script>
 
 </body>
