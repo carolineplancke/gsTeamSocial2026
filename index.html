@@ -4,96 +4,129 @@
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- QR Scanner library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #F5F5F5;
+      font-family: Arial;
+      background: #0B0F1A;
+      color: white;
       text-align: center;
       margin: 0;
       padding: 20px;
     }
 
     h1 {
-      color: #0055BF;
+      color: #6CFF00;
     }
 
     .card {
-      background: white;
-      border-radius: 16px;
+      background: #121826;
+      border-radius: 20px;
       padding: 20px;
       margin: 20px auto;
       max-width: 420px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
     }
 
     .btn {
-      display: block;
       width: 100%;
-      padding: 16px;
+      padding: 18px;
       margin: 10px 0;
+      border-radius: 14px;
       font-size: 16px;
       border: none;
-      border-radius: 12px;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
     }
 
     .primary {
-      background: #E3000B;
-      color: white;
+      background: #6CFF00;
+      color: black;
     }
 
     .secondary {
-      background: #0055BF;
+      background: #1E2A44;
       color: white;
     }
 
     .ghost {
-      background: transparent;
-      border: 1px solid #ccc;
+      background: none;
+      border: 1px solid #444;
+      color: white;
     }
 
     #status {
-      margin: 10px;
+      margin-bottom: 10px;
       font-weight: bold;
     }
 
-    #scanner {
+    /* FULL SCREEN SCANNER */
+    #scanOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0B0F1A;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #scanHeader {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 18px;
+      font-size: 18px;
+    }
+
+    #scanHeader button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 22px;
+    }
+
+    #reader {
       width: 100%;
       max-width: 420px;
-      margin: 20px auto;
-      padding: 10px;
     }
 
-    #scanner video {
-      border-radius: 16px;
+    #scanFrame {
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border: 4px solid #6CFF00;
+      border-radius: 20px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px rgba(108,255,0,0.6);
     }
 
-    .success { color: green; }
-    .warning { color: #E3000B; }
-
-    /* Hide junk */
-    input[type="file"] { display: none !important; }
-
+    #scanHint {
+      position: absolute;
+      bottom: 70px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
   </style>
 </head>
 
 <body>
 
-<h1>Build Together 2026</h1></h1>
+<h1>🧱 Build Together 2026</h1>
 
 <div class="card">
   <div id="status">Not signed in</div>
 
-  <!-- ✅ FIXED BUTTONS -->
-  <button class="btn primary" onclick="prepareScanner('signin')">
+  <button class="btn primary" onclick="startScanner('signin')">
     Scan your badge to sign in
   </button>
 
-  <button class="btn secondary" onclick="prepareScanner('scan')">
+  <button class="btn secondary" onclick="startScanner('scan')">
     Scan a teammate
   </button>
 
@@ -102,7 +135,19 @@
   </button>
 </div>
 
-<div id="scanner"></div>
+<!-- FULL SCREEN SCANNER -->
+<div id="scanOverlay">
+  <div id="scanHeader">
+    <span>Scan QR Code</span>
+    <button onclick="closeScanner()">✕</button>
+  </div>
+
+  <div id="reader"></div>
+
+  <div id="scanFrame"></div>
+
+  <div id="scanHint">Align QR code inside the frame</div>
+</div>
 
 <script>
 const LS_USER = "qrgame_user";
@@ -112,73 +157,64 @@ let scanner = null;
 let isScanning = false;
 
 const statusEl = document.getElementById("status");
-const scannerDiv = document.getElementById("scanner");
 
-// ✅ Update status
+// STATUS
 function updateStatus() {
   const user = localStorage.getItem(LS_USER);
 
   if (user) {
     statusEl.innerText = "✅ You are: " + user;
-    statusEl.className = "success";
   } else {
     statusEl.innerText = "Not signed in";
-    statusEl.className = "";
   }
 }
 
 updateStatus();
 
-// ✅ Reset
+// RESET
 function resetUser() {
   localStorage.clear();
   location.reload();
 }
 
-// ✅ Step 1 — show big clean button
-function prepareScanner(mode) {
-  isScanning = false;
-
-  statusEl.innerText = "📷 Tap to open camera";
-
-  scannerDiv.innerHTML = `
-    <button class="btn primary" onclick="startScanner('${mode}')">
-      Open Camera
-    </button>
-  `;
-}
-
-// ✅ Step 2 — start FULL camera (no ugly UI)
+// START FULLSCREEN SCANNER
 async function startScanner(mode) {
   if (isScanning) return;
   isScanning = true;
 
-  scannerDiv.innerHTML = `
-    <div id="reader" style="width: 100%; max-width: 420px;"></div>
-  `;
+  document.getElementById("scanOverlay").style.display = "flex";
 
   scanner = new Html5Qrcode("reader");
 
   try {
     await scanner.start(
-      { facingMode: "environment" }, // use back camera
-      { fps: 10, qrbox: 280 },
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
       (decodedText) => {
         handleScan(decodedText, mode);
-
-        scanner.stop().then(() => {
-          isScanning = false;
-        });
+        closeScanner();
       }
     );
   } catch (err) {
     console.error(err);
-    statusEl.innerText = "⚠️ Camera failed to start";
+    statusEl.innerText = "⚠️ Camera failed";
     isScanning = false;
   }
 }
 
-// ✅ Scan logic (unchanged)
+// CLOSE SCANNER
+function closeScanner() {
+  if (scanner) {
+    scanner.stop().then(() => {
+      scanner.clear();
+    });
+  }
+
+  document.getElementById("scanOverlay").style.display = "none";
+  isScanning = false;
+}
+
+// SCAN LOGIC
 function handleScan(text, mode) {
   let id = text;
 
@@ -195,19 +231,19 @@ function handleScan(text, mode) {
   if (mode === "signin") {
     localStorage.setItem(LS_USER, id);
     updateStatus();
-    flashStatus("✅ Signed in as " + id, "success");
+    statusEl.innerText = "✅ Signed in as " + id;
     return;
   }
 
   const currentUser = localStorage.getItem(LS_USER);
 
   if (!currentUser) {
-    flashStatus("⚠️ Sign in first", "warning");
+    statusEl.innerText = "⚠️ Sign in first";
     return;
   }
 
   if (currentUser === id) {
-    flashStatus("😄 That’s you!", "warning");
+    statusEl.innerText = "😄 That’s you";
     return;
   }
 
@@ -216,27 +252,18 @@ function handleScan(text, mode) {
   const exists = scans.find(s => s.from === currentUser && s.to === id);
 
   if (exists) {
-    flashStatus("⚠️ Already scanned", "warning");
+    statusEl.innerText = "⚠️ Already scanned";
     return;
   }
 
   scans.push({
     from: currentUser,
-    to: id,
-    time: new Date().toISOString()
+    to: id
   });
 
   localStorage.setItem(LS_SCANS, JSON.stringify(scans));
 
-  flashStatus("✅ +1 connection with " + id, "success");
-}
-
-// ✅ Feedback
-function flashStatus(text, type) {
-  statusEl.innerText = text;
-  statusEl.className = type;
-
-  setTimeout(() => updateStatus(), 2000);
+  statusEl.innerText = "✅ +1 connection with " + id;
 }
 </script>
 
