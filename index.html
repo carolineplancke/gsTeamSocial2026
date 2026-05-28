@@ -182,9 +182,22 @@
   </div>
 </div>
 
+  <div id="leaderboardScreen" class="screen">
+  <div class="card">
+    <h3>Leaderboard</h3>
+
+    <h4>Top Connectors</h4>
+    <div id="topConnectors"></div>
+
+    <h4 style="margin-top:20px;">Most Popular</h4>
+    <div id="mostPopular"></div>
+  </div>
+</div>
+
 <div id="nav">
-  <button id="navScan" class="active" onclick="showScreen('scan')">Scan</button>
-  <button id="navHistory" onclick="showScreen('history')">History</button>
+  <button onclick="showScreen('scan')">Scan</button>
+  <button onclick="showScreen('history')">History</button>
+  <button onclick="showScreen('leaderboard')">🏆</button>
 </div>
 
 <script>
@@ -235,10 +248,12 @@ function setImageSource(img, uid){
 
 // ✅ NAV
 function showScreen(s){
-  scanScreen.classList.toggle("active",s==="scan");
-  historyScreen.classList.toggle("active",s==="history");
+  scanScreen.classList.toggle("active", s==="scan");
+  historyScreen.classList.toggle("active", s==="history");
+  leaderboardScreen.classList.toggle("active", s==="leaderboard");
 
   if(s==="history") loadHistory();
+  if(s==="leaderboard") loadLeaderboard();
 }
 
 // ✅ TOAST
@@ -367,6 +382,80 @@ function resetUser(){
   localStorage.clear();
   location.reload();
 }
+
+async function loadLeaderboard(){
+  if(!window.db){
+    console.warn("No Firebase connection");
+    return;
+  }
+
+  const containerA = document.getElementById("topConnectors");
+  const containerB = document.getElementById("mostPopular");
+
+  containerA.innerHTML = "Loading...";
+  containerB.innerHTML = "Loading...";
+
+  try {
+    const snapshot = await fetchFirestoreScans();
+
+    const outgoing = {}; // from → count
+    const incoming = {}; // to → count
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      outgoing[data.from] = (outgoing[data.from] || 0) + 1;
+      incoming[data.to] = (incoming[data.to] || 0) + 1;
+    });
+
+    const sortedOutgoing = Object.entries(outgoing)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,10);
+
+    const sortedIncoming = Object.entries(incoming)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,10);
+
+    renderLeaderboard(containerA, sortedOutgoing);
+    renderLeaderboard(containerB, sortedIncoming);
+
+  } catch(e){
+    console.error(e);
+  }
+}
+
+async function fetchFirestoreScans(){
+  const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const snapshot = await getDocs(collection(window.db, "scans"));
+  return snapshot.docs;
+}
+
+function renderLeaderboard(container, data){
+  container.innerHTML = "";
+
+  data.forEach(([uid, count], i) => {
+    const p = PEOPLE[uid] || {};
+
+    const row = document.createElement("div");
+    row.className = "historyItem";
+
+    const img = document.createElement("img");
+    img.className = "avatar";
+    setImageSource(img, uid);
+
+    const text = document.createElement("div");
+    text.innerHTML = `
+      <strong>${i+1}. ${p.name || uid}</strong><br>
+      <small>${count} scans</small>
+    `;
+
+    row.appendChild(img);
+    row.appendChild(text);
+
+    container.appendChild(row);
+  });
+}
+  
 </script>
 
 </body>
