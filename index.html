@@ -11,13 +11,21 @@
       font-family: Arial;
       background: #0B0F1A;
       color: white;
-      text-align: center;
       margin: 0;
       padding: 20px;
+      text-align: center;
     }
 
     h1 {
       color: #6CFF00;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .active {
+      display: block;
     }
 
     .card {
@@ -33,7 +41,6 @@
       padding: 18px;
       margin: 10px 0;
       border-radius: 14px;
-      font-size: 16px;
       border: none;
       font-weight: bold;
       cursor: pointer;
@@ -60,7 +67,26 @@
       font-weight: bold;
     }
 
-    /* FULL SCREEN SCANNER */
+    /* NAV BAR */
+    #nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #121826;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+    }
+
+    #nav button {
+      background: none;
+      color: white;
+      border: none;
+      font-size: 14px;
+    }
+
+    /* SCANNER OVERLAY */
     #scanOverlay {
       position: fixed;
       top: 0;
@@ -78,15 +104,7 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
-      padding: 18px;
-      font-size: 18px;
-    }
-
-    #scanHeader button {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 22px;
+      padding: 20px;
     }
 
     #reader {
@@ -103,14 +121,20 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px rgba(108,255,0,0.6);
     }
 
     #scanHint {
       position: absolute;
-      bottom: 70px;
+      bottom: 80px;
       font-size: 14px;
       opacity: 0.7;
+    }
+
+    /* HISTORY LIST */
+    .historyItem {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #2A334C;
     }
   </style>
 </head>
@@ -119,34 +143,56 @@
 
 <h1>🧱 Build Together 2026</h1>
 
-<div class="card">
-  <div id="status">Not signed in</div>
+<!-- ✅ SCAN SCREEN -->
+<div id="scanScreen" class="screen active">
+  <div class="card">
+    <div id="status">Not signed in</div>
 
-  <button class="btn primary" onclick="startScanner('signin')">
-    Scan your badge to sign in
-  </button>
+    <button class="btn primary" onclick="startScanner('signin')">
+      Scan your badge to sign in
+    </button>
 
-  <button class="btn secondary" onclick="startScanner('scan')">
-    Scan a teammate
-  </button>
+    <button class="btn secondary" onclick="startScanner('scan')">
+      Scan a teammate
+    </button>
 
-  <button class="btn ghost" onclick="resetUser()">
-    Reset
-  </button>
+    <button class="btn ghost" onclick="resetUser()">Reset</button>
+  </div>
 </div>
 
-<!-- FULL SCREEN SCANNER -->
+<!-- ✅ HISTORY SCREEN -->
+<div id="historyScreen" class="screen">
+  <div class="card">
+    <h3>Your Connections</h3>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- ✅ LEADERBOARD SCREEN (basic for now) -->
+<div id="leaderboardScreen" class="screen">
+  <div class="card">
+    <h3>Leaderboard</h3>
+    <p id="yourScore"></p>
+  </div>
+</div>
+
+<!-- ✅ SCANNER -->
 <div id="scanOverlay">
   <div id="scanHeader">
-    <span>Scan QR Code</span>
+    <span>Scan QR</span>
     <button onclick="closeScanner()">✕</button>
   </div>
 
   <div id="reader"></div>
-
   <div id="scanFrame"></div>
-
   <div id="scanHint">Align QR code inside the frame</div>
+</div>
+
+<!-- ✅ NAV BAR -->
+<div id="nav">
+  <button onclick="showScreen('scan')">📷 Scan</button>
+  <button onclick="showScreen('history')">👥 History</button>
+  <button onclick="showScreen('leaderboard')">🏆 Leaderboard</button>
 </div>
 
 <script>
@@ -156,20 +202,17 @@ const LS_SCANS = "qrgame_scans";
 let scanner = null;
 let isScanning = false;
 
-const statusEl = document.getElementById("status");
+// NAVIGATION
+function showScreen(screen) {
+  document.getElementById("scanScreen").classList.remove("active");
+  document.getElementById("historyScreen").classList.remove("active");
+  document.getElementById("leaderboardScreen").classList.remove("active");
 
-// STATUS
-function updateStatus() {
-  const user = localStorage.getItem(LS_USER);
+  document.getElementById(screen + "Screen").classList.add("active");
 
-  if (user) {
-    statusEl.innerText = "✅ You are: " + user;
-  } else {
-    statusEl.innerText = "Not signed in";
-  }
+  if (screen === "history") loadHistory();
+  if (screen === "leaderboard") loadLeaderboard();
 }
-
-updateStatus();
 
 // RESET
 function resetUser() {
@@ -177,7 +220,7 @@ function resetUser() {
   location.reload();
 }
 
-// START FULLSCREEN SCANNER
+// SCANNER
 async function startScanner(mode) {
   if (isScanning) return;
   isScanning = true;
@@ -186,28 +229,19 @@ async function startScanner(mode) {
 
   scanner = new Html5Qrcode("reader");
 
-  try {
-    await scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        handleScan(decodedText, mode);
-        closeScanner();
-      }
-    );
-  } catch (err) {
-    console.error(err);
-    statusEl.innerText = "⚠️ Camera failed";
-    isScanning = false;
-  }
+  await scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      handleScan(decodedText, mode);
+      closeScanner();
+    }
+  );
 }
 
-// CLOSE SCANNER
 function closeScanner() {
   if (scanner) {
-    scanner.stop().then(() => {
-      scanner.clear();
-    });
+    scanner.stop().then(() => scanner.clear());
   }
 
   document.getElementById("scanOverlay").style.display = "none";
@@ -216,54 +250,45 @@ function closeScanner() {
 
 // SCAN LOGIC
 function handleScan(text, mode) {
-  let id = text;
+  const id = text;
 
-  try {
-    if (text.startsWith("http")) {
-      const url = new URL(text);
-      id = url.searchParams.get("id") || text;
-    }
-  } catch {}
-
-  if (!id) return;
-
-  // SIGN IN
   if (mode === "signin") {
     localStorage.setItem(LS_USER, id);
-    updateStatus();
-    statusEl.innerText = "✅ Signed in as " + id;
     return;
   }
 
-  const currentUser = localStorage.getItem(LS_USER);
-
-  if (!currentUser) {
-    statusEl.innerText = "⚠️ Sign in first";
-    return;
-  }
-
-  if (currentUser === id) {
-    statusEl.innerText = "😄 That’s you";
-    return;
-  }
+  const user = localStorage.getItem(LS_USER);
+  if (!user || user === id) return;
 
   let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  const exists = scans.find(s => s.from === currentUser && s.to === id);
-
-  if (exists) {
-    statusEl.innerText = "⚠️ Already scanned";
-    return;
+  if (!scans.find(s => s.from === user && s.to === id)) {
+    scans.push({ from: user, to: id });
   }
 
-  scans.push({
-    from: currentUser,
-    to: id
-  });
-
   localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+}
 
-  statusEl.innerText = "✅ +1 connection with " + id;
+// ✅ HISTORY
+function loadHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+
+  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+
+  scans.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "historyItem";
+    div.innerText = `✅ ${s.to}`;
+    list.appendChild(div);
+  });
+}
+
+// ✅ LEADERBOARD
+function loadLeaderboard() {
+  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+  document.getElementById("yourScore").innerText =
+    "You have " + scans.length + " connections";
 }
 </script>
 
