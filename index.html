@@ -4,7 +4,7 @@
   <title>Build Together 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Optional but helpful for project sites: keeps all relative links anchored to /gsTeamSocial2026/ -->
+  <!-- Keeps relative links anchored to /gsTeamSocial2026/ -->
   <base href="/gsTeamSocial2026/">
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -250,7 +250,7 @@
       <button class="btn ghost" onclick="resetUser()">Reset</button>
 
       <div class="toast">
-        Tip: Photos live in <strong>images/A001.jpg</strong>, <strong>images/A002.jpg</strong>, etc.
+        Tip: Photos can be <strong>images/A001.jpg</strong> or <strong>.jpeg</strong> or <strong>.png</strong> — any is fine (filename must match UID).
       </div>
     </div>
   </div>
@@ -336,10 +336,23 @@
     localStorage.setItem(LS_SCANS, JSON.stringify(scans));
   }
 
-  // Photos in your repo: /gsTeamSocial2026/images/A001.jpg
-  // Use RELATIVE paths so they resolve under the project subpath. [2](https://www.codestudy.net/blog/github-pages-and-relative-paths/)
-  function getPhotoUrl(uid) {
-    return `images/${uid}.jpg`;
+  // Tries images/UID.jpg -> .jpeg -> .png, then falls back to placeholder.
+  function setImageSource(imgEl, uid) {
+    const formats = ["jpg", "jpeg", "png"];
+    let i = 0;
+
+    function tryNext() {
+      if (i >= formats.length) {
+        imgEl.onerror = null;
+        imgEl.src = FALLBACK_AVATAR;
+        return;
+      }
+      const ext = formats[i++];
+      imgEl.src = `images/${uid}.${ext}`; // relative path for project site [1](https://gsccloud.sharepoint.com/sites/Caroline_Dev/_layouts/15/Doc.aspx?sourcedoc=%7B270C161E-A75F-442C-A2D1-37ADC4577156%7D&file=Victualic%20Well-Being%20Finalist%20Presentation%201.pptx&action=edit&mobileredirect=true&DefaultItemOpen=1)
+    }
+
+    imgEl.onerror = tryNext;
+    tryNext();
   }
 
   function updateTopStatus() {
@@ -446,7 +459,7 @@
     }
   }
 
-  // HISTORY (photo + UID)
+  // HISTORY (photo + UID; supports mixed extensions)
   function loadHistory() {
     historyList.innerHTML = "";
 
@@ -474,9 +487,8 @@
 
       const img = document.createElement("img");
       img.className = "avatar";
-      img.src = getPhotoUrl(uid);
       img.alt = uid;
-      img.onerror = () => { img.src = FALLBACK_AVATAR; };
+      setImageSource(img, uid);
 
       const who = document.createElement("div");
       who.className = "who";
