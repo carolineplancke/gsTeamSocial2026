@@ -4,40 +4,120 @@
   <title>QR Connection Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- QR Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #F5F5F5;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #0055BF;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 420px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #E3000B;
+      color: white;
+    }
+
+    .secondary {
+      background: #0055BF;
+      color: white;
+    }
+
+    .ghost {
+      background: transparent;
+      border: 1px solid #ccc;
+    }
+
+    #status {
+      margin: 10px;
+      font-weight: bold;
+    }
+
+    #scanner {
+      width: 100%;
+      max-width: 420px;
+      margin: 20px auto;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .warning {
+      color: #E3000B;
+    }
+  </style>
 </head>
 
-<body style="font-family: Arial; text-align:center; padding:20px;">
+<body>
 
-<h2>QR Connection Game 🎉</h2>
+<h1>🧱 QR Connection Game</h1>
 
-<p id="status">Not signed in</p>
+<div class="card">
+  <div id="status">Not signed in</div>
 
-<button id="signinBtn" style="padding:14px; margin:10px;">Scan your badge to sign in</button>
-<button id="scanBtn" style="padding:14px; margin:10px;">Scan someone</button>
-<br><br>
-<button onclick="resetUser()">Reset user</button>
+  <button class="btn primary" onclick="startScanner('signin')">
+    Scan your badge to sign in
+  </button>
 
-<div id="scanner" style="width:320px; margin:20px auto;"></div>
+  <button class="btn secondary" onclick="startScanner('scan')">
+    Scan a teammate
+  </button>
+
+  <button class="btn ghost" onclick="resetUser()">
+    Reset
+  </button>
+</div>
+
+<div id="scanner"></div>
 
 <script>
 const LS_USER = "qrgame_user";
 const LS_SCANS = "qrgame_scans";
 
-const statusEl = document.getElementById("status");
-const scannerDiv = document.getElementById("scanner");
-
 let scanner = null;
 let isScanning = false;
+
+const statusEl = document.getElementById("status");
 
 // Update status
 function updateStatus() {
   const user = localStorage.getItem(LS_USER);
+
   if (user) {
-    statusEl.innerText = "You are: " + user;
+    statusEl.innerText = "✅ You are: " + user;
+    statusEl.className = "success";
   } else {
     statusEl.innerText = "Not signed in";
+    statusEl.className = "";
   }
 }
 
@@ -45,8 +125,7 @@ updateStatus();
 
 // Reset
 function resetUser() {
-  localStorage.removeItem(LS_USER);
-  localStorage.removeItem(LS_SCANS);
+  localStorage.clear();
   location.reload();
 }
 
@@ -55,15 +134,16 @@ function startScanner(mode) {
   if (isScanning) return;
 
   isScanning = true;
-  scannerDiv.innerHTML = "";
+  document.getElementById("scanner").innerHTML = "";
 
-  // create scanner
-  scanner = new Html5QrcodeScanner("scanner", { fps: 10, qrbox: 250 });
+  scanner = new Html5QrcodeScanner("scanner", {
+    fps: 10,
+    qrbox: { width: 280, height: 280 } // 🔥 bigger scan area
+  });
 
   scanner.render((decodedText) => {
     handleScan(decodedText, mode);
 
-    // stop AFTER success
     scanner.clear().then(() => {
       isScanning = false;
     });
@@ -87,20 +167,19 @@ function handleScan(text, mode) {
   if (mode === "signin") {
     localStorage.setItem(LS_USER, id);
     updateStatus();
-    statusEl.innerText = "✅ Signed in as " + id;
+    flashStatus("✅ Signed in as " + id, "success");
     return;
   }
 
-  // SCAN MODE
   const currentUser = localStorage.getItem(LS_USER);
 
   if (!currentUser) {
-    statusEl.innerText = "⚠️ Sign in first";
+    flashStatus("⚠️ Sign in first", "warning");
     return;
   }
 
   if (currentUser === id) {
-    statusEl.innerText = "😄 That’s you!";
+    flashStatus("😄 That’s you!", "warning");
     return;
   }
 
@@ -109,7 +188,7 @@ function handleScan(text, mode) {
   const exists = scans.find(s => s.from === currentUser && s.to === id);
 
   if (exists) {
-    statusEl.innerText = "⚠️ Already scanned";
+    flashStatus("⚠️ Already scanned", "warning");
     return;
   }
 
@@ -121,17 +200,16 @@ function handleScan(text, mode) {
 
   localStorage.setItem(LS_SCANS, JSON.stringify(scans));
 
-  statusEl.innerText = "✅ +1 connection with " + id;
+  flashStatus("✅ +1 connection with " + id, "success");
 }
 
-// Buttons
-document.getElementById("signinBtn").onclick = () => {
-  startScanner("signin");
-};
+// Flash feedback
+function flashStatus(text, type) {
+  statusEl.innerText = text;
+  statusEl.className = type;
 
-document.getElementById("scanBtn").onclick = () => {
-  startScanner("scan");
-};
+  setTimeout(() => updateStatus(), 2000);
+}
 </script>
 
 </body>
