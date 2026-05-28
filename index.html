@@ -1,45 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QR Game</title>
+  <title>QR Connection Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- QR Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 
 <body style="font-family: Arial; text-align:center; padding:20px;">
 
 <h2>QR Connection Game 🎉</h2>
 
-<div id="setup">
-  <p>Who are you?</p>
-  <button onclick="setUser('Caroline')">Caroline</button><br><br>
-  <button onclick="setUser('Matt')">Matt</button><br><br>
-  <button onclick="setUser('Kelly')">Kelly</button><br><br>
-</div>
+<p id="status">Not signed in</p>
 
-<div id="app" style="display:none;">
-  <p id="welcome"></p>
-  <p>Ready to scan people ✅</p>
-  <button onclick="logout()">Change user</button>
-</div>
+<button id="signinBtn" style="padding:14px; margin:10px;">Scan your badge to sign in</button>
+<button id="scanBtn" style="padding:14px; margin:10px;">Scan someone</button>
+<br><br>
+<button onclick="resetUser()">Reset user</button>
+
+<div id="scanner" style="width:320px; margin:20px auto;"></div>
 
 <script>
-const user = localStorage.getItem("user");
+const LS_USER = "qrgame_user";
+const LS_SCANS = "qrgame_scans";
 
-if (user) {
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  document.getElementById("welcome").innerText = "You are: " + user;
+const statusEl = document.getElementById("status");
+const scannerDiv = document.getElementById("scanner");
+
+// Show current user
+function updateStatus() {
+  const user = localStorage.getItem(LS_USER);
+  if (user) {
+    statusEl.innerText = "You are: " + user;
+  } else {
+    statusEl.innerText = "Not signed in";
+  }
 }
 
-function setUser(name) {
-  localStorage.setItem("user", name);
+updateStatus();
+
+// Reset user (for testing)
+function resetUser() {
+  localStorage.removeItem(LS_USER);
   location.reload();
 }
 
-function logout() {
-  localStorage.removeItem("user");
-  location.reload();
+// Start scanner function
+function startScanner(mode) {
+  scannerDiv.innerHTML = ""; // reset
+  const qr = new Html5QrcodeScanner("scanner", { fps: 10, qrbox: 250 });
+
+  qr.render((decodedText) => {
+    handleScan(decodedText, mode);
+
+    // stop + hide scanner after scan
+    scannerDiv.innerHTML = "";
+  });
 }
+
+// Handle scanning logic
+function handleScan(text, mode) {
+  let id = text;
+
+  try {
+    if (text.startsWith("http")) {
+      const url = new URL(text);
+      id = url.searchParams.get("id") || url.searchParams.get("signin") || text;
+    }
+  } catch {}
+
+  if (!id) return;
+
+  // SIGN IN FLOW
+  if (mode === "signin") {
+    localStorage.setItem(LS_USER, id);
+    updateStatus();
+    statusEl.innerText = "✅ Signed in as " + id;
+    return;
+  }
+
+  // SCAN FLOW
+  const currentUser = localStorage.getItem(LS_USER);
+
+  if (!currentUser) {
+    statusEl.innerText = "⚠️ Please sign in first!";
+    return;
+  }
+
+  if (currentUser === id) {
+    statusEl.innerText = "😄 You scanned yourself";
+    return;
+  }
+
+  // get previous scans
+  let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+
+  // prevent duplicates
+  const exists = scans.find(s => s.from === currentUser && s.to === id);
+  if (exists) {
+    statusEl.innerText = "⚠️ Already scanned this person";
+    return;
+  }
+
+  scans.push({
+    from: currentUser,
+    to: id,
+    time: new Date().toISOString()
+  });
+
+  localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+
+  statusEl.innerText = "✅ +1 connection with " + id;
+}
+
+// Buttons
+document.getElementById("signinBtn").onclick = () => {
+  startScanner("signin");
+};
+
+document.getElementById("scanBtn").onclick = () => {
+  startScanner("scan");
+};
+
 </script>
 
 </body>
