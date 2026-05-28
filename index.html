@@ -65,6 +65,11 @@
       width: 100%;
       max-width: 420px;
       margin: 20px auto;
+      padding: 10px;
+    }
+    
+    #scanner video {
+      border-radius: 16px;
     }
 
     .success {
@@ -74,6 +79,28 @@
     .warning {
       color: #E3000B;
     }
+
+    
+    /* Hide the "Scan image file" junk */
+    #scanner__dashboard_section_csr button:last-child,
+    #scanner__dashboard_section_csr div:last-child {
+      display: none !important;
+    }
+    
+    /* Hide image upload completely */
+    input[type="file"] {
+      display: none !important;
+    }
+
+    
+  /* Make permission button easy to tap */
+  #scanner button {
+    font-size: 18px !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+  }
+
   </style>
 </head>
 
@@ -84,11 +111,11 @@
 <div class="card">
   <div id="status">Not signed in</div>
 
-  <button class="btn primary" onclick="startScanner('signin')">
+  <button class="btn primary" onclick="prepareScanner("signin")">
     Scan your badge to sign in
   </button>
 
-  <button class="btn secondary" onclick="startScanner('scan')">
+  <button class="btn secondary" onclick="prepareScanner("signin")">
     Scan a teammate
   </button>
 
@@ -210,6 +237,20 @@ function flashStatus(text, type) {
 
   setTimeout(() => updateStatus(), 2000);
 }
+
+
+function prepareScanner(mode) {
+  statusEl.innerText = "📷 Tap below to enable camera";
+
+  const scannerDiv = document.getElementById("scanner");
+
+  scannerDiv.innerHTML = `
+    <button class="btn primary" onclick="startScanner('${mode}')">
+      Enable camera
+    </button>
+  `;
+}
+
 </script>
 
 </body>
