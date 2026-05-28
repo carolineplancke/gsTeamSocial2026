@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="/gsTeamSocial2026/">
 
-  <!-- ✅ IMPORTANT: add this (was broken before) -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- ✅ FIXED SCRIPT -->
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
 
   <style>
     body {
@@ -56,7 +56,6 @@
       border-radius:8px;
     }
 
-    /* ✅ NAV */
     #nav {
       position:fixed;
       bottom:0;
@@ -75,16 +74,6 @@
       align-items:center;
     }
 
-    #nav img {
-      width:30px;
-      opacity:0.5;
-    }
-
-    #nav .active img {
-      opacity:1;
-      filter:drop-shadow(0 0 8px #6CFF00);
-    }
-
     /* ✅ SCANNER FIX */
     #scanOverlay {
       position:fixed;
@@ -96,10 +85,12 @@
       z-index:9999;
     }
 
+    /* ✅ allow proper camera aspect (fix "short box") */
     #readerWrapper {
       position:relative;
-      width:320px;
-      height:320px;
+      width:90vw;
+      max-width:420px;
+      aspect-ratio: 3 / 4; /* ✅ THIS fixes vertical squash */
     }
 
     #reader {
@@ -108,22 +99,24 @@
     }
 
     #reader video {
-      object-fit: cover;
+      width:100%;
+      height:100%;
+      object-fit:cover;
     }
 
+    /* ✅ Frame now proportional */
     #scanFrame {
       position:absolute;
       top:50%;
       left:50%;
-      width:250px;
-      height:250px;
+      width:70%;
+      height:50%; /* ✅ rectangular matches real scanner */
       border:4px solid #6CFF00;
       transform:translate(-50%,-50%);
       box-shadow:0 0 20px rgba(108,255,0,0.6);
       pointer-events:none;
     }
 
-    /* ✅ TOAST */
     #toast {
       position:fixed;
       bottom:110px;
@@ -136,7 +129,6 @@
       display:none;
       font-weight:bold;
     }
-
   </style>
 </head>
 
@@ -146,7 +138,6 @@
 
 <div id="toast"></div>
 
-<!-- SCAN -->
 <div id="scanScreen" class="screen active">
   <div class="card">
     <div id="status">Not signed in</div>
@@ -157,7 +148,6 @@
   </div>
 </div>
 
-<!-- HISTORY -->
 <div id="historyScreen" class="screen">
   <div class="card">
     <h3>Connections</h3>
@@ -165,7 +155,6 @@
   </div>
 </div>
 
-<!-- ✅ SCANNER FIXED STRUCTURE -->
 <div id="scanOverlay">
   <div id="readerWrapper">
     <div id="reader"></div>
@@ -173,14 +162,9 @@
   </div>
 </div>
 
-<!-- NAV -->
 <div id="nav">
-  <button id="navScan" class="active" onclick="showScreen('scan')">
-    <img src="Scan.svg">
-  </button>
-  <button id="navHistory" onclick="showScreen('history')">
-    <img src="History.svg">
-  </button>
+  <button id="navScan" class="active" onclick="showScreen('scan')">Scan</button>
+  <button id="navHistory" onclick="showScreen('history')">History</button>
 </div>
 
 <script>
@@ -202,7 +186,6 @@ async function loadPeople() {
 }
 loadPeople();
 
-// ✅ NAV
 function showScreen(s){
   scanScreen.classList.toggle("active",s==="scan");
   historyScreen.classList.toggle("active",s==="history");
@@ -213,35 +196,50 @@ function showScreen(s){
   if(s==="history") loadHistory();
 }
 
-// ✅ TOAST
 function showToast(msg){
   const t = document.getElementById("toast");
   t.innerText = msg;
   t.style.display = "block";
-
-  setTimeout(()=>{
-    t.style.display = "none";
-  },2000);
+  setTimeout(()=>{ t.style.display="none"; },2000);
 }
 
-// ✅ SCANNER FIXED
+// ✅ FIXED camera start + permissions
 async function startScanner(mode){
   if(isScanning) return;
-  isScanning=true;
+  isScanning = true;
 
   document.getElementById("scanOverlay").style.display="flex";
 
-  if(scanner){
-    await scanner.stop().catch(()=>{});
+  try {
+    // ✅ force permission prompt
+    await navigator.mediaDevices.getUserMedia({ video:true });
+  } catch(e) {
+    alert("Camera permission is required");
+    isScanning=false;
+    return;
   }
 
-  scanner = new Html5Qrcode("reader", {
-    experimentalFeatures:{useBarCodeDetectorIfSupported:true}
-  });
+  if(scanner){
+    await scanner.stop().catch(()=>{});
+    scanner.clear();
+  }
+
+  scanner = new Html5Qrcode("reader");
 
   await scanner.start(
     { facingMode: "environment" },
-    { fps:10, qrbox:250 },
+    {
+      fps: 10,
+      aspectRatio: 1.333, // ✅ stabilizes sizing
+      disableFlip: true,
+      qrbox: (vw, vh) => {
+        const min = Math.min(vw, vh);
+        return {
+          width: min * 0.7,
+          height: min * 0.5
+        };
+      }
+    },
     text=>{
       handleScan(text,mode);
       closeScanner();
@@ -258,31 +256,13 @@ async function closeScanner(){
   isScanning=false;
 }
 
-// ✅ IMAGE HELPER
-function setImageSource(img,uid){
-  const types=["jpg","jpeg","png","JPG"];
-  let i=0;
-  function tryNext(){
-    if(i>=types.length) return;
-    img.src=`images/${uid}.${types[i++]}`;
-  }
-  img.onerror=tryNext;
-  tryNext();
-}
-
-// ✅ SCAN LOGIC
 function handleScan(text,mode){
   let id=text;
-
   const person = PEOPLE[id];
 
   if(mode==="signin"){
     localStorage.setItem(LS_USER,id);
-
-    showToast(
-      person ? `👋 Welcome, ${person.name}` : `👋 Welcome`
-    );
-
+    showToast(person ? `👋 Welcome, ${person.name}` : `👋 Welcome`);
     return;
   }
 
@@ -297,14 +277,9 @@ function handleScan(text,mode){
 
   localStorage.setItem(LS_SCANS,JSON.stringify(scans));
 
-  showToast(
-    person
-      ? `✅ +1 Connection: ${person.name}`
-      : `✅ +1 Connection`
-  );
+  showToast(person ? `✅ +1 Connection: ${person.name}` : `✅ +1 Connection`);
 }
 
-// ✅ HISTORY
 function loadHistory(){
   const list = document.getElementById("historyList");
   list.innerHTML="";
@@ -316,10 +291,6 @@ function loadHistory(){
     const row=document.createElement("div");
     row.className="historyItem";
 
-    const img=document.createElement("img");
-    img.className="avatar";
-    setImageSource(img,s.to);
-
     const p = PEOPLE[s.to] || {};
 
     row.innerHTML = `
@@ -328,8 +299,6 @@ function loadHistory(){
         <small>${p.title || ""}</small>
       </div>
     `;
-
-    row.prepend(img);
     list.appendChild(row);
   });
 }
