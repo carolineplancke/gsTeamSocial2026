@@ -1,5 +1,4 @@
-<script>
-  const LS_SCANS = "scans";
+ const LS_SCANS = "scans";
 
   let PEOPLE = {};
   let scanner;
@@ -281,4 +280,3 @@
       container.appendChild(row);
     });
   }
-</script>
