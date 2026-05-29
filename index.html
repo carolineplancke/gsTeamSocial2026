@@ -214,7 +214,7 @@ async function loadPeople() {
   const data = await res.json();
 
   data.slice(1).forEach(p=>{
-    PEOPLE[p.D] = { name:p.A, title:p.C };
+    PEOPLE[p.id] = { name:p.name, title:p.jobTitle };
   });
 }
 
