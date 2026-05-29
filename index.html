@@ -239,7 +239,42 @@
 
 <!-- ✅ YOUR EXISTING SCRIPT UNCHANGED BELOW -->
 <script>
-/* leaving your logic exactly as-is */
+<!-- KEEP THE NEW UI ABOVE -->
+
+<!-- ✅ YOUR ORIGINAL SCRIPT — PASTE THIS BACK -->
+<script>
+const LS_USER = "user";
+const LS_SCANS = "scans";
+
+let PEOPLE = {};
+let scanner;
+let isScanning = false;
+
+// ✅ LOAD PEOPLE
+async function loadPeople() {
+  const res = await fetch("people.json");
+  const data = await res.json();
+
+  data.forEach(p=>{
+    PEOPLE[p.id] = { name:p.name, title:p.jobTitle };
+  });
+}
+
+// ✅ RESTORE USER
+function restoreUser(){
+  const user = localStorage.getItem(LS_USER);
+  if(!user) return;
+
+  const person = PEOPLE[user];
+  document.getElementById("status").innerText =
+    `Signed in as ${person ? person.name : user}`;
+}
+
+// ✅ INIT
+(async function init(){
+  await loadPeople();
+  restoreUser();
+})();
 </script>
 
 </body>
