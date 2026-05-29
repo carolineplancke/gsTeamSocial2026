@@ -352,45 +352,56 @@
 
     // ✅ SCAN LOGIC + FIREBASE
     function handleScan(text, mode){
-      if (mode === "signin") {
-      // save mapping: UID → person
-      if(window.db && window.setDoc && window.doc){
-        window.setDoc(window.doc(window.db, "users", user), {
-          personId: id
-        }).then(() => {
-          showToast(`👋 You are now ${person?.name || id}`);
-          document.getElementById("status").innerText =
-            `Signed in as ${person?.name || id}`;
-        }).catch(console.error);
-      }
-    
-      return;
+  const id = (text || "").trim();
+  if(!id) return;
+
+  const person = PEOPLE[id];
+  const user = window.currentUid;
+
+  if(!user){
+    showToast("Still connecting… try again");
+    return;
+  }
+
+  // badge scan = link Firebase UID to real person ID
+  if (mode === "signin") {
+    if(window.db && window.setDoc && window.doc){
+      window.setDoc(window.doc(window.db, "users", user), {
+        personId: id
+      }).then(() => {
+        showToast(`👋 You are now ${person?.name || id}`);
+        document.getElementById("status").innerText =
+          `Signed in as ${person?.name || id}`;
+      }).catch(err => {
+        console.error(err);
+        showToast("Could not save badge identity");
+      });
     }
-      
-      const id = (text || "").trim();
-      if(!id) return;
+    return;
+  }
 
-      const person = PEOPLE[id];
-      const user = window.currentUid;
-      
-      if(!user){
-        showToast("Still connecting… try again");
-        return;
-      }
+  let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+  const exists = scans.some(s => s.from === user && s.to === id);
 
-      const user = window.currentUid;
-      if(!user){
-        showToast("Still connecting… try again");
-        return;
-      }
+  if(!exists){
+    scans.push({ from:user, to:id });
+    localStorage.setItem(LS_SCANS, JSON.stringify(scans));
 
-      let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
-      const exists = scans.some(s => s.from === user && s.to === id);
-      
-      if(!exists){
-        scans.push({ from:user, to:id });
-        localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+    if(window.db && window.addDoc && window.collection){
+      window.addDoc(window.collection(window.db, "scans"), {
+        scannerUid: user,
+        scannedPersonId: id,
+        timestamp: Date.now()
+      }).then(() => {
+        console.log("✅ Firebase saved");
+      }).catch(err => {
+        console.warn("Firebase error", err);
+      });
+    }
+  }
 
+  showToast(person ? `✅ +1 ${person.name}` : `✅ Saved`);
+}
         // ✅ FIREBASE SAVE (safe + optional)
         if(window.db && window.addDoc && window.collection){
           window.addDoc(window.collection(window.db, "scans"), {
@@ -410,33 +421,38 @@
 
     // ✅ HISTORY
     function loadHistory(){
-      const list = document.getElementById("historyList");
-      list.innerHTML = "";
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
 
-      const user = localStorage.getItem(LS_USER);
-      const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+  const user = window.currentUid;
+  if(!user){
+    list.innerHTML = "Still connecting...";
+    return;
+  }
 
-      scans.filter(s => s.from === user).forEach(s => {
-        const row = document.createElement("div");
-        row.className = "historyItem";
+  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-        const img = document.createElement("img");
-        img.className = "avatar";
-        setImageSource(img, s.to);
+  scans.filter(s => s.from === user).forEach(s => {
+    const row = document.createElement("div");
+    row.className = "historyItem";
 
-        const p = PEOPLE[s.to] || {};
+    const img = document.createElement("img");
+    img.className = "avatar";
+    setImageSource(img, s.to);
 
-        const text = document.createElement("div");
-        text.innerHTML = `
-          <strong>${p.name || s.to}</strong><br>
-          <small>${p.title || ""}</small>
-        `;
+    const p = PEOPLE[s.to] || {};
 
-        row.appendChild(img);
-        row.appendChild(text);
-        list.appendChild(row);
-      });
-    }
+    const text = document.createElement("div");
+    text.innerHTML = `
+      <strong>${p.name || s.to}</strong><br>
+      <small>${p.title || ""}</small>
+    `;
+
+    row.appendChild(img);
+    row.appendChild(text);
+    list.appendChild(row);
+  });
+}
 
     // ✅ RESET
     function resetUser(){
@@ -491,10 +507,7 @@
     }
 
     async function fetchFirestoreData(){
-      const { getDocs, collection, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    
-      const scansSnapshot = await getDocs(collection(window.db, "scans"));
-      const scans = scansSnapshot.docs.map(doc => doc.data());
+  const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     
       // get all user → person mappings
       const usersSnapshot = await getDocs(collection(window.db, "users"));
