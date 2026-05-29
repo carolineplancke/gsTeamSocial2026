@@ -460,16 +460,17 @@
       containerB.innerHTML = "Loading...";
 
       try {
-        const snapshot = await fetchFirestoreScans();
+        const { scans, userMap } = await fetchFirestoreData();
 
         const outgoing = {}; // from → count
         const incoming = {}; // to → count
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          outgoing[data.scannerUid] = (outgoing[data.scannerUid] || 0) + 1;
-          incoming[data.scannedPersonId] = (incoming[data.scannedPersonId] || 0) + 1;
-        });
+        scans.forEach(data => {
+        const scannerPersonId = userMap[data.scannerUid] || data.scannerUid;
+      
+        outgoing[scannerPersonId] = (outgoing[scannerPersonId] || 0) + 1;
+        incoming[data.scannedPersonId] = (incoming[data.scannedPersonId] || 0) + 1;
+      });
 
         const sortedOutgoing = Object.entries(outgoing)
           .sort((a,b)=>b[1]-a[1])
@@ -489,11 +490,24 @@
       }
     }
 
-    async function fetchFirestoreScans(){
-      const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      const snapshot = await getDocs(collection(window.db, "scans"));
-      return snapshot.docs;
+    async function fetchFirestoreData(){
+      const { getDocs, collection, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    
+      const scansSnapshot = await getDocs(collection(window.db, "scans"));
+      const scans = scansSnapshot.docs.map(doc => doc.data());
+    
+      // get all user → person mappings
+      const usersSnapshot = await getDocs(collection(window.db, "users"));
+      const userMap = {};
+    
+      usersSnapshot.forEach(doc => {
+        const data = doc.data();
+        userMap[doc.id] = data.personId; // uid → personId
+      });
+    
+      return { scans, userMap };
     }
+
 
     function renderLeaderboard(container, data){
       container.innerHTML = "";
