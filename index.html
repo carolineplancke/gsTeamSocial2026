@@ -10,7 +10,7 @@
   <!-- ✅ FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     
     const firebaseConfig = {
@@ -44,6 +44,8 @@
     window.db = db;
     window.addDoc = addDoc;
     window.collection = collection;
+    window.doc = doc;
+    window.setDoc = setDoc;
   </script>
 
   <style>
@@ -350,10 +352,31 @@
 
     // ✅ SCAN LOGIC + FIREBASE
     function handleScan(text, mode){
+      if (mode === "signin") {
+      // save mapping: UID → person
+      if(window.db && window.setDoc && window.doc){
+        window.setDoc(window.doc(window.db, "users", user), {
+          personId: id
+        }).then(() => {
+          showToast(`👋 You are now ${person?.name || id}`);
+          document.getElementById("status").innerText =
+            `Signed in as ${person?.name || id}`;
+        }).catch(console.error);
+      }
+    
+      return;
+    }
+      
       const id = (text || "").trim();
       if(!id) return;
 
       const person = PEOPLE[id];
+      const user = window.currentUid;
+      
+      if(!user){
+        showToast("Still connecting… try again");
+        return;
+      }
 
       const user = window.currentUid;
       if(!user){
