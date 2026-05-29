@@ -1,226 +1,505 @@
-<script>
-const LS_USER = "user";
-const LS_SCANS = "scans";
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Build Together 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/gsTeamSocial2026/">
 
-let PEOPLE = {};
-let scanner;
-let isScanning = false;
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
 
-// ✅ LOAD PEOPLE
-async function loadPeople() {
-  const res = await fetch("people.json");
-  const data = await res.json();
+  <!-- ✅ FIREBASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  data.forEach(p=>{
-    PEOPLE[p.id] = { name:p.name, title:p.jobTitle };
-  });
-}
+    const firebaseConfig = {
+      apiKey: "AIzaSyDrGat6lUuENewTehvJ6yk1_hY2xROEIRw",
+      authDomain: "buildtogethergs2026.firebaseapp.com",
+      projectId: "buildtogethergs2026",
+      storageBucket: "buildtogethergs2026.firebasestorage.app",
+      messagingSenderId: "360094439415",
+      appId: "1:360094439415:web:fef720adb4793b1d2b00f2"
+    };
 
-// ✅ RESTORE USER
-function restoreUser(){
-  const user = localStorage.getItem(LS_USER);
-  if(!user) return;
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  const person = PEOPLE[user];
-  document.getElementById("status").innerText =
-    `Signed in as ${person ? person.name : user}`;
-}
+    // expose globally
+    window.db = db;
+    window.addDoc = addDoc;
+    window.collection = collection;
+  </script>
 
-// ✅ INIT
-(async function init(){
-  await loadPeople();
-  restoreUser();
-})();
+  <style>
+    body {
+      font-family: Arial;
+      background: #0B0F1A;
+      color: white;
+      margin: 0;
+      padding: 20px 20px 150px; /* more space for taller nav */
+    }
 
-// ✅ NAV
-function showScreen(s){
-  document.getElementById("scanScreen").classList.toggle("active", s==="scan");
-  document.getElementById("historyScreen").classList.toggle("active", s==="history");
-  document.getElementById("leaderboardScreen").classList.toggle("active", s==="leaderboard");
+    h1 { color: #6CFF00; }
 
-  if(s==="history") loadHistory();
-  if(s==="leaderboard") loadLeaderboard();
-}
+    .screen { display:none; }
+    .active { display:block; }
 
-// ✅ TOAST
-function showToast(msg){
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.style.display = "block";
-  setTimeout(()=>{ t.style.display="none"; },2000);
-}
+    .card {
+      background:#121826;
+      padding:24px;
+      border-radius:24px;
+      margin:24px auto;
+      max-width:420px;
+    }
 
-// ✅ SCANNER
-async function startScanner(mode){
-  if(isScanning) return;
+    .btn {
+      width:100%;
+      padding:18px;
+      margin:12px 0;
+      border-radius:16px;
+      border:none;
+      font-weight:bold;
+      font-size:16px;
+      cursor:pointer;
+    }
 
-  isScanning = true;
-  document.getElementById("scanOverlay").style.display = "flex";
+    /* ⭐ HERO BUTTON (main feature) */
+    .hero {
+      background:#6CFF00;
+      color:black;
+      font-size:20px;
+      padding:22px;
+      border-radius:20px;
+      box-shadow:0 0 18px rgba(108,255,0,0.6);
+    }
 
-  if(scanner){
-    try { await scanner.stop(); } catch {}
-    scanner.clear();
-  }
+    .secondary { background:#1E2A44; color:white; }
+    .subtle { opacity:0.82; }
 
-  scanner = new Html5Qrcode("reader");
+    .ghost {
+      background:none;
+      border:1px solid #444;
+      color:white;
+    }
 
-  await scanner.start(
-    { facingMode: "environment" },
-    { fps: 10 },
-    (text) => {
-      if (!isScanning) return;
+    .historyItem {
+      display:flex;
+      gap:10px;
+      padding:10px;
+      border-bottom:1px solid #2A334C;
+    }
+
+    .avatar {
+      width:44px;
+      height:44px;
+      border-radius:8px;
+    }
+
+    /* ✅ MUCH MORE THUMB FRIENDLY NAV */
+    #nav {
+      position:fixed;
+      bottom:0;
+      width:100%;
+      height:110px;
+      background:#121826;
+      display:flex;
+      padding-bottom:10px;
+      z-index:999;
+    }
+
+    #nav button {
+      flex:1;
+      border:none;
+      background:none;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-size:16px;
+      color:white;
+      cursor:pointer;
+    }
+
+    .nav-primary {
+      color:#6CFF00;
+      font-weight:bold;
+    }
+
+    #scanOverlay {
+      position:fixed;
+      inset:0;
+      background:#0B0F1A;
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+    }
+
+    #readerWrapper {
+      position:relative;
+      width:90vw;
+      max-width:420px;
+      aspect-ratio: 3 / 4;
+    }
+
+    #reader {
+      width:100%;
+      height:100%;
+    }
+
+    #reader video {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    #scanFrame {
+      position:absolute;
+      top:50%;
+      left:50%;
+      width:70%;
+      height:50%;
+      border:4px solid #6CFF00;
+      transform:translate(-50%,-50%);
+      box-shadow:0 0 20px rgba(108,255,0,0.6);
+      pointer-events:none;
+    }
+
+    #toast {
+      position:fixed;
+      bottom:140px; /* above taller nav */
+      left:50%;
+      transform:translateX(-50%);
+      background:#121826;
+      padding:12px 18px;
+      border-radius:12px;
+      border:1px solid #2A334C;
+      display:none;
+      font-weight:bold;
+      z-index:10000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Build Together</h1>
+
+  <div id="toast"></div>
+
+  <div id="scanScreen" class="screen active">
+    <div class="card">
+      <div id="status">Not signed in</div>
+
+      <!-- ✅ PRIMARY FEATURE -->
+      <button class="btn hero" onclick="startScanner('scan')">Scan teammate</button>
+
+      <!-- ✅ SECONDARY -->
+      <button class="btn secondary subtle" onclick="startScanner('signin')">Scan your badge</button>
+
+      <button class="btn ghost" onclick="resetUser()">Reset</button>
+    </div>
+  </div>
+
+  <div id="historyScreen" class="screen">
+    <div class="card">
+      <h3>Connections</h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div id="scanOverlay">
+    <div id="readerWrapper">
+      <div id="reader"></div>
+      <div id="scanFrame"></div>
+    </div>
+  </div>
+
+  <div id="leaderboardScreen" class="screen">
+    <div class="card">
+      <h3>Leaderboard</h3>
+
+      <h4>Top Connectors</h4>
+      <div id="topConnectors"></div>
+
+      <h4 style="margin-top:20px;">Most Popular</h4>
+      <div id="mostPopular"></div>
+    </div>
+  </div>
+
+  <div id="nav">
+    <button onclick="showScreen('scan')" class="nav-primary">Scan</button>
+    <button onclick="showScreen('history')">History</button>
+    <button onclick="showScreen('leaderboard')">🏆</button>
+  </div>
+
+  <script>
+    const LS_USER = "user";
+    const LS_SCANS = "scans";
+
+    let PEOPLE = {};
+    let scanner;
+    let isScanning = false;
+
+    // ✅ LOAD PEOPLE (expects clean JSON objects: {name,email,jobTitle,id})
+    async function loadPeople() {
+      const res = await fetch("people.json");
+      const data = await res.json();
+
+      data.forEach(p => {
+        if (!p || !p.id) return;
+        PEOPLE[p.id] = { name: p.name, title: p.jobTitle };
+      });
+    }
+
+    // ✅ RESTORE USER
+    function restoreUser(){
+      const user = localStorage.getItem(LS_USER);
+      if(!user) return;
+
+      const person = PEOPLE[user];
+      document.getElementById("status").innerText =
+        `Signed in as ${person ? person.name : user}`;
+    }
+
+    // ✅ INIT
+    (async function init(){
+      await loadPeople();
+      restoreUser();
+    })();
+
+    // ✅ IMAGE LOADER (kept as you had it)
+    function setImageSource(img, uid){
+      const formats = ["jpg","jpeg","png","JPG"];
+      let i = 0;
+      function tryNext(){
+        if(i >= formats.length) return;
+        img.src = `images/${uid}.${formats[i++]}`;
+      }
+      img.onerror = tryNext;
+      tryNext();
+    }
+
+    // ✅ NAV (fixed: no relying on global element variables)
+    function showScreen(s){
+      document.getElementById("scanScreen").classList.toggle("active", s==="scan");
+      document.getElementById("historyScreen").classList.toggle("active", s==="history");
+      document.getElementById("leaderboardScreen").classList.toggle("active", s==="leaderboard");
+
+      if(s==="history") loadHistory();
+      if(s==="leaderboard") loadLeaderboard();
+    }
+
+    // ✅ TOAST
+    function showToast(msg){
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.style.display = "block";
+      setTimeout(()=>{ t.style.display="none"; }, 2000);
+    }
+
+    // ✅ SCANNER
+    async function startScanner(mode){
+      if(isScanning) return;
+
+      isScanning = true;
+      document.getElementById("scanOverlay").style.display = "flex";
+
+      // stop previous instance if any
+      if(scanner){
+        try { await scanner.stop(); } catch(e) {}
+        try { scanner.clear(); } catch(e) {}
+      }
+
+      scanner = new Html5Qrcode("reader");
+
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10 },
+          (text) => {
+            if (!isScanning) return;
+            isScanning = false;
+
+            handleScan(text, mode);
+            closeScanner();
+          }
+        );
+      } catch (e) {
+        console.error(e);
+        showToast("Camera error — check permissions");
+        closeScanner();
+      }
+    }
+
+    async function closeScanner(){
+      try {
+        if(scanner){
+          await scanner.stop();
+          await scanner.clear();
+        }
+      } catch(e) {}
+
+      document.getElementById("scanOverlay").style.display = "none";
       isScanning = false;
-
-      handleScan(text, mode);
-      closeScanner();
     }
-  );
-}
 
-async function closeScanner(){
-  try {
-    if(scanner){
-      await scanner.stop();
-      await scanner.clear();
+    // ✅ SCAN LOGIC + FIREBASE
+    function handleScan(text, mode){
+      const id = (text || "").trim();
+      if(!id) return;
+
+      const person = PEOPLE[id];
+
+      if(mode === "signin"){
+        localStorage.setItem(LS_USER, id);
+
+        document.getElementById("status").innerText =
+          `Signed in as ${person ? person.name : id}`;
+
+        showToast(person ? `👋 Welcome, ${person.name}` : `👋 Signed in`);
+        return;
+      }
+
+      const user = localStorage.getItem(LS_USER);
+      if(!user){ showToast("Scan your badge first"); return; }
+      if(user === id) return;
+
+      let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+      const exists = scans.some(s => s.from === user && s.to === id);
+
+      if(!exists){
+        scans.push({ from:user, to:id });
+        localStorage.setItem(LS_SCANS, JSON.stringify(scans));
+
+        // ✅ FIREBASE SAVE (safe + optional)
+        if(window.db && window.addDoc && window.collection){
+          window.addDoc(window.collection(window.db, "scans"), {
+            from: user,
+            to: id,
+            timestamp: Date.now()
+          }).then(()=>{
+            console.log("✅ Firebase saved");
+          }).catch(err=>{
+            console.warn("Firebase error", err);
+          });
+        }
+      }
+
+      showToast(person ? `✅ +1 ${person.name}` : `✅ Saved`);
     }
-  } catch {}
 
-  document.getElementById("scanOverlay").style.display = "none";
-  isScanning = false;
-}
+    // ✅ HISTORY
+    function loadHistory(){
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
 
-// ✅ SCAN LOGIC
-function handleScan(text, mode){
-  const id = text.trim();
-  const person = PEOPLE[id];
+      const user = localStorage.getItem(LS_USER);
+      const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
 
-  if(mode === "signin"){
-    localStorage.setItem(LS_USER, id);
+      scans.filter(s => s.from === user).forEach(s => {
+        const row = document.createElement("div");
+        row.className = "historyItem";
 
-    document.getElementById("status").innerText =
-      `Signed in as ${person ? person.name : id}`;
+        const img = document.createElement("img");
+        img.className = "avatar";
+        setImageSource(img, s.to);
 
-    showToast(person ? `👋 Welcome, ${person.name}` : `👋 Signed in`);
-    return;
-  }
+        const p = PEOPLE[s.to] || {};
 
-  const user = localStorage.getItem(LS_USER);
-  if(!user){ showToast("Scan your badge first"); return; }
-  if(user === id) return;
+        const text = document.createElement("div");
+        text.innerHTML = `
+          <strong>${p.name || s.to}</strong><br>
+          <small>${p.title || ""}</small>
+        `;
 
-  let scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
-
-  const exists = scans.some(s => s.from === user && s.to === id);
-
-  if(!exists){
-    scans.push({ from:user, to:id });
-    localStorage.setItem(LS_SCANS, JSON.stringify(scans));
-
-    if(window.db){
-      addDoc(collection(window.db, "scans"), {
-        from: user,
-        to: id,
-        timestamp: Date.now()
-      }).catch(()=>{});
+        row.appendChild(img);
+        row.appendChild(text);
+        list.appendChild(row);
+      });
     }
-  }
 
-  showToast(person ? `✅ +1 ${person.name}` : `✅ Saved`);
-}
+    // ✅ RESET
+    function resetUser(){
+      localStorage.clear();
+      location.reload();
+    }
 
-// ✅ HISTORY
-function loadHistory(){
-  const list = document.getElementById("historyList");
-  list.innerHTML = "";
+    // ✅ LEADERBOARD
+    async function loadLeaderboard(){
+      if(!window.db){
+        console.warn("No Firebase connection");
+        document.getElementById("topConnectors").innerHTML = "Firebase not available";
+        document.getElementById("mostPopular").innerHTML = "Firebase not available";
+        return;
+      }
 
-  const user = localStorage.getItem(LS_USER);
-  const scans = JSON.parse(localStorage.getItem(LS_SCANS)) || [];
+      const containerA = document.getElementById("topConnectors");
+      const containerB = document.getElementById("mostPopular");
 
-  scans.filter(s => s.from === user).forEach(s => {
-    const row = document.createElement("div");
-    row.className = "historyItem";
+      containerA.innerHTML = "Loading...";
+      containerB.innerHTML = "Loading...";
 
-    const img = document.createElement("img");
-    img.className = "avatar";
-    img.src = `images/${s.to}.jpg`;
+      try {
+        const snapshot = await fetchFirestoreScans();
 
-    const p = PEOPLE[s.to] || {};
+        const outgoing = {}; // from → count
+        const incoming = {}; // to → count
 
-    const text = document.createElement("div");
-    text.innerHTML = `
-      <strong>${p.name || s.to}</strong><br>
-      <small>${p.title || ""}</small>
-    `;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          outgoing[data.from] = (outgoing[data.from] || 0) + 1;
+          incoming[data.to] = (incoming[data.to] || 0) + 1;
+        });
 
-    row.appendChild(img);
-    row.appendChild(text);
-    list.appendChild(row);
-  });
-}
+        const sortedOutgoing = Object.entries(outgoing)
+          .sort((a,b)=>b[1]-a[1])
+          .slice(0,10);
 
-// ✅ RESET
-function resetUser(){
-  localStorage.clear();
-  location.reload();
-}
+        const sortedIncoming = Object.entries(incoming)
+          .sort((a,b)=>b[1]-a[1])
+          .slice(0,10);
 
-// ✅ LEADERBOARD
-async function loadLeaderboard(){
-  const containerA = document.getElementById("topConnectors");
-  const containerB = document.getElementById("mostPopular");
+        renderLeaderboard(containerA, sortedOutgoing);
+        renderLeaderboard(containerB, sortedIncoming);
 
-  containerA.innerHTML = "Loading...";
-  containerB.innerHTML = "Loading...";
+      } catch(e){
+        console.error(e);
+        containerA.innerHTML = "Error loading";
+        containerB.innerHTML = "Error loading";
+      }
+    }
 
-  try {
-    const docs = await fetchFirestoreScans();
+    async function fetchFirestoreScans(){
+      const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snapshot = await getDocs(collection(window.db, "scans"));
+      return snapshot.docs;
+    }
 
-    const outgoing = {};
-    const incoming = {};
+    function renderLeaderboard(container, data){
+      container.innerHTML = "";
 
-    docs.forEach(doc => {
-      const data = doc.data();
-      outgoing[data.from] = (outgoing[data.from] || 0) + 1;
-      incoming[data.to] = (incoming[data.to] || 0) + 1;
-    });
+      data.forEach(([uid, count], i) => {
+        const p = PEOPLE[uid] || {};
 
-    renderLeaderboard(containerA, Object.entries(outgoing).sort((a,b)=>b[1]-a[1]).slice(0,10));
-    renderLeaderboard(containerB, Object.entries(incoming).sort((a,b)=>b[1]-a[1]).slice(0,10));
+        const row = document.createElement("div");
+        row.className = "historyItem";
 
-  } catch(e){
-    console.error(e);
-  }
-}
+        const img = document.createElement("img");
+        img.className = "avatar";
+        setImageSource(img, uid);
 
-async function fetchFirestoreScans(){
-  const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-  const snapshot = await getDocs(collection(window.db, "scans"));
-  return snapshot.docs;
-}
+        const text = document.createElement("div");
+        text.innerHTML = `
+          <strong>${i+1}. ${p.name || uid}</strong><br>
+          <small>${count} scans</small>
+        `;
 
-function renderLeaderboard(container, data){
-  container.innerHTML = "";
+        row.appendChild(img);
+        row.appendChild(text);
+        container.appendChild(row);
+      });
+    }
+  </script>
 
-  data.forEach(([uid, count], i) => {
-    const p = PEOPLE[uid] || {};
-
-    const row = document.createElement("div");
-    row.className = "historyItem";
-
-    const img = document.createElement("img");
-    img.className = "avatar";
-    img.src = `images/${uid}.jpg`;
-
-    const text = document.createElement("div");
-    text.innerHTML = `
-      <strong>${i+1}. ${p.name || uid}</strong><br>
-      <small>${count} scans</small>
-    `;
-
-    row.appendChild(img);
-    row.appendChild(text);
-
-    container.appendChild(row);
-  });
-}
-</script>
+</body>
+</html>
