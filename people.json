@@ -640,5 +640,35 @@
     "email": "zachary.dunn@greenshield.ca",
     "jobTitle": "Software Engineer III",
     "id": "A032"
-  }
+  },
+    {
+    "name": "Aanandkumar Neethirajan",
+    "email": "aanand.neethirajan@greenshield.ca",
+    "jobTitle": "Senior Consultant - Data Governance",
+    "id": "A0150"
+  },
+    {
+    "name": "Debajyoti Kar",
+    "email": "debajyoti.kar@greenshield.ca",
+    "jobTitle": "Contractor: Data Governance",
+    "id": "A0151"
+  },  
+    {
+    "name": "Scott Masterson",
+    "email": "scott.masterson@greenshield.ca",
+    "jobTitle": "Full Stack Developer",
+    "id": "A0152"
+  },  
+   {
+    "name": "Mehmet Avci",
+    "email": "mehmet.avci@greenshield.ca",
+    "jobTitle": "Senior Full Stack Developer",
+    "id": "A0153"
+  },  
+   {
+    "name": "Saurabh Sant",
+    "email": "Saurabh.Sant@greenshield.ca",
+    "jobTitle": "Data Engineering Specialist",
+    "id": "A0154"
+  },
 ]
